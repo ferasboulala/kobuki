@@ -152,7 +152,7 @@ Kobuki::Kobuki(FILE* file, const std::array<int, N_EFD> &efds)
     m_gpi.efd = efds[6];
     m_pid.efd = efds[7];
 
-    m_reading_thread = std::thread(&Kobuki::read, this);
+    m_reading_thread = std::thread(&Kobuki::spin, this);
     request_identifiers();
     set_leds(false, false, false, false); // Will turn everything down (power and digital output too)
 }
@@ -302,7 +302,7 @@ bool Kobuki::validate_checksum(uint8_t packet_length, const char* buffer)
     return checksum(packet_length, buffer) ^ cs ? false : true;
 }
 
-void Kobuki::read()
+void Kobuki::spin()
 {
     while (ok())
     {

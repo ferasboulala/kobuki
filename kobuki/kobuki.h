@@ -55,7 +55,7 @@ private:
 
     Kobuki(FILE* file, const std::array<int, N_EFD> &efds);
 
-    void read();
+    void spin();
     bool process_packet(const char* buffer, uint8_t length);
     bool find_packet_header();
     uint8_t checksum(uint8_t packet_length, const char* buffer);
