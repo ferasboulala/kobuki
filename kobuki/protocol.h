@@ -16,7 +16,7 @@ struct PacketHeader {
 
 static_assert(sizeof(PacketHeader) == 3, "Unexpected size");
 
-enum class Commands : uint8_t {
+enum class Command : uint8_t {
     Motion = 1,
     Reserved_1,
     Sound,
@@ -34,7 +34,7 @@ enum class Commands : uint8_t {
 };
 
 struct CommandSubPayloadHeader {
-    Commands type;
+    Command type;
     uint8_t length;
 } __attribute__((__packed__));
 
@@ -70,6 +70,23 @@ struct SoundSequence : CommandSubPayloadHeader {
 
 static_assert(sizeof(SoundSequence) == sizeof(CommandSubPayloadHeader) + 1, "Unexpected size");
 
+enum class RequestExtraFlag : uint16_t {
+    HardwareVersion = 0x01,
+    FirmwareVersion = 0x02,
+    UDID            = 0x08,
+};
+
+inline RequestExtraFlag operator|(const RequestExtraFlag& lhs, const RequestExtraFlag& rhs)
+{
+    return static_cast<RequestExtraFlag>(static_cast<uint16_t>(lhs) | static_cast<uint16_t>(rhs));
+}
+
+struct RequestExtra : CommandSubPayloadHeader {
+    RequestExtraFlag flags;
+} __attribute__((__packed__));
+
+static_assert(sizeof(RequestExtra) == sizeof(CommandSubPayloadHeader) + 2, "Unexpected size");
+
 enum class DigitalOutput : uint16_t {
     CHANNEL_0    = 0x0001,
     CHANNEL_1    = 0x0002,
@@ -85,11 +102,11 @@ enum class DigitalOutput : uint16_t {
     LED_4        = 0x0800,
 };
 
-struct RequestExtra : CommandSubPayloadHeader {
+struct GeneralPurposeOutput : CommandSubPayloadHeader {
     DigitalOutput digital_output;
 } __attribute__((__packed__));
 
-static_assert(sizeof(RequestExtra) == sizeof(CommandSubPayloadHeader) + 2, "Unexpected size");
+static_assert(sizeof(GeneralPurposeOutput) == sizeof(CommandSubPayloadHeader) + 2, "Unexpected size");
 
 enum class GainType : uint8_t {
     DEFAULT = 0,
@@ -148,12 +165,12 @@ enum class Side : uint8_t {
     Left   = 0x04,
 };
 
-uint8_t operator&(const Side& lhs, const Side& rhs)
+inline uint8_t operator&(const Side& lhs, const Side& rhs)
 {
     return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 }
 
-uint8_t operator|(const Side& lhs, const Side& rhs)
+inline uint8_t operator|(const Side& lhs, const Side& rhs)
 {
     return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }
@@ -163,12 +180,12 @@ enum class Wheel : uint8_t {
     Left  = 0x02,
 };
 
-uint8_t operator&(const Wheel& lhs, const Wheel& rhs)
+inline uint8_t operator&(const Wheel& lhs, const Wheel& rhs)
 {
     return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 }
 
-uint8_t operator|(const Wheel& lhs, const Wheel& rhs)
+inline uint8_t operator|(const Wheel& lhs, const Wheel& rhs)
 {
     return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }
@@ -179,12 +196,12 @@ enum class Button : uint8_t {
     Button_2 = 0x04,
 };
 
-uint8_t operator&(const Button& lhs, const Button& rhs)
+inline uint8_t operator&(const Button& lhs, const Button& rhs)
 {
     return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 }
 
-uint8_t operator|(const Button& lhs, const Button& rhs)
+inline uint8_t operator|(const Button& lhs, const Button& rhs)
 {
     return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }
@@ -197,12 +214,12 @@ enum class Charger : uint8_t {
     AdapterCharging = 22,
 };
 
-uint8_t operator&(const Charger& lhs, const Charger& rhs)
+inline uint8_t operator&(const Charger& lhs, const Charger& rhs)
 {
     return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 }
 
-uint8_t operator|(const Charger& lhs, const Charger& rhs)
+inline uint8_t operator|(const Charger& lhs, const Charger& rhs)
 {
     return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }
@@ -235,12 +252,12 @@ enum class Signal : uint8_t {
     FarRight   = 0x20,
 };
 
-uint8_t operator&(const Signal& lhs, const Signal& rhs)
+inline uint8_t operator&(const Signal& lhs, const Signal& rhs)
 {
     return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 }
 
-uint8_t operator|(const Signal& lhs, const Signal& rhs)
+inline uint8_t operator|(const Signal& lhs, const Signal& rhs)
 {
     return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }
@@ -316,12 +333,12 @@ enum class DigitalInput : uint16_t {
     Channel_3 = 0x08,
 };
 
-uint8_t operator&(const DigitalInput& lhs, const DigitalInput& rhs)
+inline uint8_t operator&(const DigitalInput& lhs, const DigitalInput& rhs)
 {
     return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 }
 
-uint8_t operator|(const DigitalInput& lhs, const DigitalInput& rhs)
+inline uint8_t operator|(const DigitalInput& lhs, const DigitalInput& rhs)
 {
     return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }

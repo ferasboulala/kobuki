@@ -8,7 +8,7 @@
 #include <thread>
 #include <mutex>
 
-#define MUTEX_ACCESSOR(type, label) bool label(type& label, bool block)
+#define MUTEX_ACCESSOR(type, label) bool get_##label(type& label, bool block)
 #define MUTEX_ASSIGN(type, label) void set_##label(const type& label)
 
 namespace kobuki {
@@ -32,12 +32,13 @@ public:
     MUTEX_ACCESSOR(InertialData, inertial_data);
     MUTEX_ACCESSOR(CliffData, cliff_data);
     MUTEX_ACCESSOR(Current, current);
-    MUTEX_ACCESSOR(std::string, hardware_version);
-    MUTEX_ACCESSOR(std::string, firmware_version);
     MUTEX_ACCESSOR(GyroData, gyro_data);
     MUTEX_ACCESSOR(GeneralPurposeInput, gpi);
-    MUTEX_ACCESSOR(UDID, udid);
     MUTEX_ACCESSOR(PID, pid);
+
+    std::string get_hardware_version() const;
+    std::string get_firmware_version() const;
+    UDID get_udid() const;
 
     // TODO : Move to another file
     static double ticks_to_meters(uint16_t ticks);
@@ -48,6 +49,10 @@ private:
 
     void read();
     bool process_packet(const char* buffer, uint8_t length);
+    bool find_packet_header();
+    bool checksum(uint8_t packet_length, const char* buffer);
+
+    void request_identifiers();
 
     bool on_msg(const protocol::BasicSensorData& basic_sensor_data);
     bool on_msg(const protocol::DockingIR& docking_ir);
@@ -66,11 +71,8 @@ private:
     MUTEX_ASSIGN(InertialData, inertial_data);
     MUTEX_ASSIGN(CliffData, cliff_data);
     MUTEX_ASSIGN(Current, current);
-    MUTEX_ASSIGN(std::string, hardware_version);
-    MUTEX_ASSIGN(std::string, firmware_version);
     MUTEX_ASSIGN(GyroData, gyro_data);
     MUTEX_ASSIGN(GeneralPurposeInput, gpi);
-    MUTEX_ASSIGN(UDID, udid);
     MUTEX_ASSIGN(PID, pid);
 
 private:
@@ -83,12 +85,13 @@ private:
     EventField<InertialData> m_inertial_data;
     EventField<CliffData> m_cliff_data;
     EventField<Current> m_current;
-    EventField<std::string> m_hardware_version;
-    EventField<std::string> m_firmware_version;
     EventField<GyroData> m_gyro_data;
     EventField<GeneralPurposeInput> m_gpi;
-    EventField<UDID> m_udid;
     EventField<PID> m_pid;
+
+    std::string m_hardware_version;
+    std::string m_firmware_version;
+    UDID m_udid;
 };
 
 } // namespace kobuki

@@ -16,7 +16,7 @@
 #include <math.h>
 
 #define MUTEX_ACCESSOR_IMPL(type, label) \
-    bool Kobuki::label(type& label, bool block) \
+    bool Kobuki::get_##label(type& label, bool block) \
     { \
         if (!ok()) return false;\
         const int timeout = block ? std::numeric_limits<int>::max() : 0;\
@@ -24,6 +24,12 @@
         fd.fd = m_##label.efd;\
         fd.events = POLLIN;\
         const int updated = poll(&fd, 1, timeout);\
+        if (updated == -1)\
+        {\
+            log_error("Could not read field " #type);\
+            m_run = false;\
+            return false;\
+        }\
         if (!updated) return false;\
         std::lock_guard<std::mutex> guard(m_##label.mutex);\
         label = m_##label.field;\
@@ -35,6 +41,13 @@
     { \
         std::lock_guard<std::mutex> guard(m_##label.mutex);\
         m_##label.field = label;\
+        const int64_t buffer = 1;\
+        const int bytes_written = write(m_##label.efd, &buffer, sizeof(int64_t));\
+        if (bytes_written != sizeof(buffer))\
+        {\
+            log_error("Could not write to " #type " label. Wrote %ld instead of %lu : %s", bytes_written, sizeof(buffer), strerror(errno));\
+            m_run = false;\
+        }\
     }
 
 namespace {
@@ -47,7 +60,7 @@ bool create_efds(std::array<int, N> &efds)
 {
     for (size_t i = 0; i < N; ++i)
     {
-        const int efd = eventfd(0, EFD_NONBLOCK);
+        const int efd = eventfd(0, 0);
         if (efd == -1)
         {
             log_error("Could not create event file descriptor #%lu : %s", i, strerror(errno));
@@ -59,9 +72,20 @@ bool create_efds(std::array<int, N> &efds)
     return true;
 }
 
+template <typename T>
+T prepare_message(protocol::Command type)
+{
+    T msg;
+    memset(&msg, 0, sizeof(T));
+    msg.type = type;
+    msg.length = sizeof(T) - sizeof(protocol::CommandSubPayloadHeader);
+
+    return msg;
+}
+
 Kobuki* Kobuki::create(const char* device)
 {
-    FILE* file = fopen(device, "rw");
+    FILE* file = fopen(device, "r+");
     if (!file) {
         log_error("Could not open device file %s", device);
         return nullptr;
@@ -81,9 +105,17 @@ Kobuki* Kobuki::create(const char* device)
     cfsetospeed(&tty, B115200);
     cfsetispeed(&tty, B115200);
 
+    //http://docs.ros.org/en/noetic/api/ecl_devices/html/serial__pos_8cpp_source.html
     tty.c_lflag = 0;
     tty.c_oflag = 0;
+    tty.c_cflag = 0;
+    tty.c_iflag = 0;
 
+    tty.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+
+    tty.c_iflag &= ~(IXON | IXOFF | IXANY);
+
+    tty.c_cflag |= CLOCAL | CREAD;
     tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; // 8 bit chars
     tty.c_cflag &= ~CSTOPB; // 1 stop bit
     tty.c_cflag &= ~PARENB; // no parity bit
@@ -121,6 +153,7 @@ Kobuki::Kobuki(FILE* file, const std::array<int, N_EFD> &efds)
     m_pid.efd = efds[7];
 
     m_reading_thread = std::thread(&Kobuki::read, this);
+    request_identifiers();
 }
 
 Kobuki::~Kobuki()
@@ -130,7 +163,7 @@ Kobuki::~Kobuki()
     fclose(m_file);
 }
 
-static bool find_packet_header(FILE* file)
+bool Kobuki::find_packet_header()
 {
     constexpr uint8_t HEADER_VALS[] = { protocol::HEADER_0_VAL, protocol::HEADER_1_VAL };
     int matches = 0;
@@ -139,7 +172,7 @@ static bool find_packet_header(FILE* file)
         for (size_t i = 0; i < sizeof(HEADER_VALS); ++i, ++matches)
         {
             char buffer;
-            int bytes_read = fread(&buffer, 1, 1, file);
+            int bytes_read = fread(&buffer, 1, 1, m_file);
             if (bytes_read != 1) {
                 log_error("Could not read packet header");
                 return false;
@@ -155,23 +188,29 @@ static bool find_packet_header(FILE* file)
     return true;
 }
 
-static bool get_packet_length(FILE* file, uint8_t &length)
-{
-    const int bytes_read = fread(&length, 1, 1, file);
-    if (bytes_read != 1) {
-        log_error("Could not read packet length");
-        return false;
-    }
-
-    return true;
-}
-
 bool Kobuki::process_packet(const char* buffer, uint8_t length)
 {
-    for (uint8_t offset = 0; offset < length;)
+    uint8_t offset;
+    for (offset = 0; offset < length;)
     {
+        if (sizeof(protocol::FeedbackSubPayloadHeader) + offset >= length) {
+            log_error("Not enough remaining bytes for header : %lu vs %d",
+                    sizeof(protocol::FeedbackSubPayloadHeader),
+                    static_cast<int>(length - offset)
+            );
+            return false;
+        }
+
         auto subpayload = reinterpret_cast<const protocol::FeedbackSubPayloadHeader*>(buffer + offset);
-        offset += subpayload->length + sizeof(protocol::FeedbackSubPayloadHeader::type) + sizeof(protocol::FeedbackSubPayloadHeader::length);
+        offset += sizeof(protocol::FeedbackSubPayloadHeader);
+        if (offset >= length) {
+            log_error("Not enough remaining bytes for the subpayload : %d vs %d",
+                    static_cast<int>(subpayload->length),
+                    static_cast<int>(offset - length)
+            );
+            return false;
+        }
+
         bool ret = true;
         switch (subpayload->type)
         {
@@ -182,54 +221,86 @@ bool Kobuki::process_packet(const char* buffer, uint8_t length)
                 break;
             case protocol::Feedback::DockingIR:
                 ret = on_msg(*reinterpret_cast<const protocol::DockingIR*>(subpayload));
+                break;
             case protocol::Feedback::InertialSensor:
                 ret = on_msg(*reinterpret_cast<const protocol::InertialSensorData*>(subpayload));
+                break;
             case protocol::Feedback::Cliff:
                 ret = on_msg(*reinterpret_cast<const protocol::CliffSensorData*>(subpayload));
+                break;
             case protocol::Feedback::Current:
                 ret = on_msg(*reinterpret_cast<const protocol::Current*>(subpayload));
+                break;
             case protocol::Feedback::Reserved_2:
             case protocol::Feedback::Reserved_3:
             case protocol::Feedback::Reserved_4:
                 break;
             case protocol::Feedback::HardwareVersion:
                 ret = on_msg(*reinterpret_cast<const protocol::HardwareVersion*>(subpayload));
+                break;
             case protocol::Feedback::FirmwareVersion:
                 ret = on_msg(*reinterpret_cast<const protocol::FirmwareVersion*>(subpayload));
+                break;
             case protocol::Feedback::Reserved_5:
                 break;
             case protocol::Feedback::RawData3AxisGyro:
                 ret = on_msg(*reinterpret_cast<const protocol::RawData3AxisGyro*>(subpayload));
+                break;
             case protocol::Feedback::Reserved_6:
             case protocol::Feedback::Reserved_7:
                 break;
             case protocol::Feedback::GeneralPurposeInput:
                 ret = on_msg(*reinterpret_cast<const protocol::GeneralPurposeInput*>(subpayload));
+                break;
             case protocol::Feedback::Reserved_8:
             case protocol::Feedback::Reserved_9:
                 break;
             case protocol::Feedback::UDID:
                 ret = on_msg(*reinterpret_cast<const protocol::UniqueDeviceIdentifier*>(subpayload));
+                break;
             case protocol::Feedback::Reserved_10:
                 break;
             case protocol::Feedback::ControllerInfo:
                 ret = on_msg(*reinterpret_cast<const protocol::ControllerInfo*>(subpayload));
+                break;
+            default:
+                log_error("Unrecognized subpaylaod type %d", static_cast<int>(subpayload->type));
+                return false;
         }
 
         if (!ret) {
             log_error("An error occured while processing a subpayload");
             return false;
         }
+
+        offset += subpayload->length;
     }
 
-    return true;
+    return offset == length;
+}
+
+bool Kobuki::checksum(uint8_t packet_length, const char* buffer)
+{
+    uint8_t cs;
+    if (fread(&cs, 1, 1, m_file) != sizeof(cs)) {
+        log_error("Could not read checksum value");
+        return false;
+    }
+
+    cs ^= packet_length;
+    for (int i = 0; i < packet_length; ++i)
+    {
+        cs ^= buffer[i];
+    } 
+
+    return cs ? false : true;
 }
 
 void Kobuki::read()
 {
     while (ok())
     {
-        if (!find_packet_header(m_file))
+        if (!find_packet_header())
         {
             log_error("Could not find packet header");
             m_run = false;
@@ -237,19 +308,26 @@ void Kobuki::read()
         }
 
         uint8_t packet_length;
-        if (!get_packet_length(m_file, packet_length))
+        int bytes_read = fread(&packet_length, 1, sizeof(packet_length), m_file);
+        if (bytes_read != sizeof(packet_length))
         {
-            log_error("Could not read the packet length after the in the header");
+            log_error("Could not read the packet length");
             m_run = false;
             return;
         }
 
         char buffer[4096];
-        const int bytes_read = fread(buffer, 1, packet_length, m_file);
+        bytes_read = fread(buffer, 1, packet_length, m_file);
         if (bytes_read != packet_length) {
             log_error("Could not read packet payload. Read %ld instead of %ld", bytes_read, static_cast<int>(packet_length));
             m_run = false;
             return;
+        }
+
+        if (!checksum(packet_length, buffer))
+        {
+            log_error("Failed checksum. Skipping packet");
+            continue;
         }
 
         if (!process_packet(buffer, packet_length))
@@ -257,7 +335,7 @@ void Kobuki::read()
             log_error("Could not process packet");
             m_run = false;
             return;
-        }
+        } 
     }
 }
 
@@ -266,29 +344,37 @@ MUTEX_ACCESSOR_IMPL(DockingIR, docking_ir);
 MUTEX_ACCESSOR_IMPL(InertialData, inertial_data);
 MUTEX_ACCESSOR_IMPL(CliffData, cliff_data);
 MUTEX_ACCESSOR_IMPL(Current, current);
-MUTEX_ACCESSOR_IMPL(std::string, hardware_version);
-MUTEX_ACCESSOR_IMPL(std::string, firmware_version);
 MUTEX_ACCESSOR_IMPL(GyroData, gyro_data);
 MUTEX_ACCESSOR_IMPL(GeneralPurposeInput, gpi);
-MUTEX_ACCESSOR_IMPL(UDID, udid);
 MUTEX_ACCESSOR_IMPL(PID, pid);
+
+std::string Kobuki::get_hardware_version() const
+{
+    return m_hardware_version;
+}
+
+std::string Kobuki::get_firmware_version() const
+{
+    return m_firmware_version;
+}
+
+UDID Kobuki::get_udid() const
+{
+    return m_udid;
+}
 
 MUTEX_ASSIGN_IMPL(BasicData, basic_data);
 MUTEX_ASSIGN_IMPL(DockingIR, docking_ir);
 MUTEX_ASSIGN_IMPL(InertialData, inertial_data);
 MUTEX_ASSIGN_IMPL(CliffData, cliff_data);
 MUTEX_ASSIGN_IMPL(Current, current);
-MUTEX_ASSIGN_IMPL(std::string, hardware_version);
-MUTEX_ASSIGN_IMPL(std::string, firmware_version);
 MUTEX_ASSIGN_IMPL(GyroData, gyro_data);
 MUTEX_ASSIGN_IMPL(GeneralPurposeInput, gpi);
-MUTEX_ASSIGN_IMPL(UDID, udid);
 MUTEX_ASSIGN_IMPL(PID, pid);
 
 bool Kobuki::on_msg(const protocol::BasicSensorData& basic_sensor_data)
 {
     BasicData basic_data;
-    memset(&basic_data, sizeof(BasicData), 0);
 
     basic_data.timestamp_ms = basic_sensor_data.timestamp_ms;
 
@@ -331,7 +417,6 @@ bool Kobuki::on_msg(const protocol::BasicSensorData& basic_sensor_data)
 bool Kobuki::on_msg(const protocol::DockingIR& docking_ir)
 {
     DockingIR ir;
-    memset(&ir, sizeof(DockingIR), 0);
 
     ir.left.near_left = docking_ir.left & protocol::Signal::NearLeft;
     ir.left.near_right = docking_ir.left & protocol::Signal::NearRight;
@@ -353,7 +438,6 @@ bool Kobuki::on_msg(const protocol::DockingIR& docking_ir)
 bool Kobuki::on_msg(const protocol::InertialSensorData& inertial_sensor_data)
 {
     InertialData inertial_data;
-    memset(&inertial_data, sizeof(InertialData), 0);
 
     inertial_data.angle = inertial_sensor_data.angle;
     inertial_data.angle_rate = inertial_sensor_data.angle_rate;
@@ -366,12 +450,11 @@ bool Kobuki::on_msg(const protocol::InertialSensorData& inertial_sensor_data)
 bool Kobuki::on_msg(const protocol::CliffSensorData& cliff_sensor_data)
 {
     CliffData cliff_data;
-    memset(&cliff_data, sizeof(CliffData), 0);
 
     constexpr double DAC = 3.3 / 4096;
-    cliff_data.range_left = DAC * cliff_sensor_data.left_voltage;
-    cliff_data.range_right = DAC * cliff_sensor_data.right_voltage;
-    cliff_data.range_center = DAC * cliff_sensor_data.center_voltage;
+    cliff_data.voltage_left = DAC * cliff_sensor_data.left_voltage;
+    cliff_data.voltage_right = DAC * cliff_sensor_data.right_voltage;
+    cliff_data.voltage_center = DAC * cliff_sensor_data.center_voltage;
 
     set_cliff_data(cliff_data);
 
@@ -381,7 +464,6 @@ bool Kobuki::on_msg(const protocol::CliffSensorData& cliff_sensor_data)
 bool Kobuki::on_msg(const protocol::Current& current)
 {
     Current cur;
-    memset(&cur, sizeof(Current), 0);
 
     constexpr double mA10 = 0.01;
     cur.current_left = mA10 * current.left_current;
@@ -401,7 +483,7 @@ bool Kobuki::on_msg(const protocol::HardwareVersion& hardware_version)
             static_cast<int>(hardware_version.patch)
     );
 
-    set_hardware_version(buffer);
+    m_hardware_version = buffer;
 
     return true;
 }
@@ -415,7 +497,7 @@ bool Kobuki::on_msg(const protocol::FirmwareVersion& firmware_version)
             static_cast<int>(firmware_version.patch)
     );
 
-    set_firmware_version(buffer);
+    m_firmware_version = buffer;
 
     return true;
 }
@@ -423,11 +505,10 @@ bool Kobuki::on_msg(const protocol::FirmwareVersion& firmware_version)
 bool Kobuki::on_msg(const protocol::RawData3AxisGyro& raw_gyro_data)
 {
     GyroData gyro_data;
-    memset(&gyro_data, sizeof(GyroData), 0);
 
     const size_t number_of_entries = raw_gyro_data.n / 3;
     // Skipping all entries except the last one
-    auto &raw_gyro_data_entry = *reinterpret_cast<const protocol::RawData3AxisGyroEntry*>(reinterpret_cast<char*>(&raw_gyro_data) + sizeof(protocol::RawData3AxisGyro) + (number_of_entries - 1) * sizeof(RawData3AxisGyroEntry));
+    auto &raw_gyro_data_entry = *reinterpret_cast<const protocol::RawData3AxisGyroEntry*>(reinterpret_cast<const char*>(&raw_gyro_data) + sizeof(protocol::RawData3AxisGyro) + (number_of_entries - 1) * sizeof(protocol::RawData3AxisGyroEntry));
 
     constexpr double DIGITS_TO_DPS = 0.00875;
     gyro_data.wx = -DIGITS_TO_DPS * raw_gyro_data_entry.y;
@@ -442,7 +523,6 @@ bool Kobuki::on_msg(const protocol::RawData3AxisGyro& raw_gyro_data)
 bool Kobuki::on_msg(const protocol::GeneralPurposeInput& gpi)
 {
     GeneralPurposeInput general_purpose_input;
-    memset(&general_purpose_input, sizeof(GeneralPurposeInput), 0);
 
     general_purpose_input.digital_inputs.set(0, gpi.digital_input & protocol::DigitalInput::Channel_0);
     general_purpose_input.digital_inputs.set(1, gpi.digital_input & protocol::DigitalInput::Channel_1);
@@ -462,14 +542,9 @@ bool Kobuki::on_msg(const protocol::GeneralPurposeInput& gpi)
 
 bool Kobuki::on_msg(const protocol::UniqueDeviceIdentifier& udid)
 {
-    UDID unique_device_identifier;
-    memset(&unique_device_identifier, sizeof(UDID), 0);
-
-    unique_device_identifier.id_0 = udid.id_0;
-    unique_device_identifier.id_1 = udid.id_1;
-    unique_device_identifier.id_2 = udid.id_2;
-
-    set_udid(unique_device_identifier);
+    m_udid.id_0 = udid.id_0;
+    m_udid.id_1 = udid.id_1;
+    m_udid.id_2 = udid.id_2;
 
     return true;
 }
@@ -477,7 +552,6 @@ bool Kobuki::on_msg(const protocol::UniqueDeviceIdentifier& udid)
 bool Kobuki::on_msg(const protocol::ControllerInfo& controller_info)
 {
     PID pid;
-    memset(&pid, sizeof(PID), 0);
 
     pid.P = controller_info.proportional / 1000;
     pid.I = controller_info.integral / 1000;
@@ -486,6 +560,22 @@ bool Kobuki::on_msg(const protocol::ControllerInfo& controller_info)
     set_pid(pid);
 
     return true;
+}
+
+void Kobuki::request_identifiers()
+{
+    auto request_extra = prepare_message<protocol::RequestExtra>(protocol::Command::RequestExtra);
+    request_extra.flags = 
+        protocol::RequestExtraFlag::HardwareVersion |
+        protocol::RequestExtraFlag::FirmwareVersion |
+        protocol::RequestExtraFlag::UDID;
+
+    const int bytes_written = fwrite(&request_extra, 1, sizeof(request_extra), m_file);
+    if (bytes_written != sizeof(request_extra))
+    {
+        log_error("Could not request id info from the robot %d vs %lu", bytes_written, sizeof(request_extra));
+        m_run = false;
+    }
 }
 
 // TODO : Move to another file
