@@ -148,10 +148,30 @@ enum class Side : uint8_t {
     Left   = 0x04,
 };
 
+uint8_t operator&(const Side& lhs, const Side& rhs)
+{
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+}
+
+uint8_t operator|(const Side& lhs, const Side& rhs)
+{
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+}
+
 enum class Wheel : uint8_t {
     Right = 0x01,
     Left  = 0x02,
 };
+
+uint8_t operator&(const Wheel& lhs, const Wheel& rhs)
+{
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+}
+
+uint8_t operator|(const Wheel& lhs, const Wheel& rhs)
+{
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+}
 
 enum class Button : uint8_t {
     Button_0 = 0x01,
@@ -159,13 +179,35 @@ enum class Button : uint8_t {
     Button_2 = 0x04,
 };
 
+uint8_t operator&(const Button& lhs, const Button& rhs)
+{
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+}
+
+uint8_t operator|(const Button& lhs, const Button& rhs)
+{
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+}
+
 enum class Charger : uint8_t {
     Discharging = 0,
     DockingCharged = 2,
     DockingCharging = 6,
-    AdpaterCharged = 18,
+    AdapterCharged = 18,
     AdapterCharging = 22,
 };
+
+uint8_t operator&(const Charger& lhs, const Charger& rhs)
+{
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+}
+
+uint8_t operator|(const Charger& lhs, const Charger& rhs)
+{
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+}
+
+constexpr double BATTERY_VOLTAGE_RES = 0.1;
 
 struct BasicSensorData : FeedbackSubPayloadHeader {
     uint16_t timestamp_ms;
@@ -192,6 +234,16 @@ enum class Signal : uint8_t {
     FarLeft    = 0x10,
     FarRight   = 0x20,
 };
+
+uint8_t operator&(const Signal& lhs, const Signal& rhs)
+{
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+}
+
+uint8_t operator|(const Signal& lhs, const Signal& rhs)
+{
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+}
 
 struct DockingIR : FeedbackSubPayloadHeader {
     Signal right;
@@ -248,6 +300,14 @@ struct RawData3AxisGyro : FeedbackSubPayloadHeader {
 }__attribute__((__packed__));
 
 static_assert(sizeof(RawData3AxisGyro) == sizeof(FeedbackSubPayloadHeader) + 2, "Unexpected size");
+
+struct RawData3AxisGyroEntry {
+    int16_t x;
+    int16_t y;
+    int16_t z;
+} __attribute__((__packed__));
+
+static_assert(sizeof(RawData3AxisGyroEntry) == 6, "Unexpected size");
 
 enum class DigitalInput : uint16_t {
     Channel_0 = 0x01,

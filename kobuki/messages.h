@@ -9,6 +9,7 @@ struct BasicSideData {
     bool bumped;
     bool wheel_dropped;
     bool cliff_sensed;
+    bool overcurrent;
 };
 
 struct BasicData {
@@ -25,9 +26,7 @@ struct BasicData {
     bool is_charging;
     bool is_using_adapter;
     bool is_docked;
-    double voltage;
-    bool overcurrent_left;
-    bool overcurrent_right;
+    double battery_voltage;
 };
 
 struct DockingSignal {
@@ -43,14 +42,14 @@ struct DockingIR {
 };
 
 struct InertialData {
-    uint16_t angle;
+    int16_t angle;
     uint16_t angle_rate;
 };
 
 struct CliffData {
-    double range_left;
-    double range_right;
-    double range_center;
+    double voltage_left;
+    double voltage_right;
+    double voltage_center;
 };
 
 struct Current {

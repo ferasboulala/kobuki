@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 /*
  * Copyright (c) 2020 rxi
  *
@@ -139,15 +140,16 @@ static void init_event(log_Event *ev, void *udata) {
 }
 
 
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 void log_log(int level, const char *file, int line, const char *fmt, ...) {
   log_Event ev = {
-    .fmt   = fmt,
-    .file  = file,
-    .line  = line,
-    .level = level,
+    va_list(),
+    fmt,
+    file,
+    nullptr,
+    nullptr,
+    line,
+    level
   };
-#pragma GCC diagnostic pop
 
   lock();
 
@@ -170,3 +172,4 @@ void log_log(int level, const char *file, int line, const char *fmt, ...) {
 
   unlock();
 }
+#pragma GCC diagnostic pop
