@@ -40,9 +40,12 @@ public:
     void set_motion(double velocity, double radius);
     void set_sound(double frequency, double duration);
     void set_sound_sequence(SoundSequence sequence);
+    // TODO
     void set_digital_output(bool channel_0, bool channel_2, bool channel_3, bool channel_4);
+    // TODO
     void set_power_output(bool power_3_3, bool power_5, bool power_12_5, bool power_12_1_5);
     void set_leds(bool led_1_green, bool led_1_red, bool led_2_green, bool led_2_red);
+    // TODO
     void set_pid(double p, double i, double d);
 
     // TODO : Move to another file
