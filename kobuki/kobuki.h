@@ -8,9 +8,6 @@
 #include <thread>
 #include <mutex>
 
-#define MUTEX_ACCESSOR(type, label) bool get_##label(type& label, bool block)
-#define MUTEX_ASSIGN(type, label) void set_##label(const type& label)
-
 namespace kobuki {
 
 template <typename T>
@@ -27,18 +24,26 @@ public:
 
     bool ok() const { return m_run; }
 
-    MUTEX_ACCESSOR(BasicData, basic_data);
-    MUTEX_ACCESSOR(DockingIR, docking_ir);
-    MUTEX_ACCESSOR(InertialData, inertial_data);
-    MUTEX_ACCESSOR(CliffData, cliff_data);
-    MUTEX_ACCESSOR(Current, current);
-    MUTEX_ACCESSOR(GyroData, gyro_data);
-    MUTEX_ACCESSOR(GeneralPurposeInput, gpi);
-    MUTEX_ACCESSOR(PID, pid);
+    bool get_basic_data(BasicData& basic_data, bool block);
+    bool get_docking_ir(DockingIR& docking_ir, bool block);
+    bool get_inertial_data(InertialData &inertial_data, bool block);
+    bool get_cliff_data(CliffData &cliff_data, bool block);
+    bool get_current(Current& current, bool block);
+    bool get_gyro_data(GyroData &gyro_data, bool block);
+    bool get_gpi(GeneralPurposeInput &gpi, bool block);
+    bool get_pid(PID &pid, bool block);
 
     std::string get_hardware_version() const;
     std::string get_firmware_version() const;
     UDID get_udid() const;
+
+    void set_motion(double velocity, double radius);
+    void set_sound(double frequency, double duration);
+    void set_sound_sequence(SoundSequence sequence);
+    void set_digital_output(bool channel_0, bool channel_2, bool channel_3, bool channel_4);
+    void set_power_output(bool power_3_3, bool power_5, bool power_12_5, bool power_12_1_5);
+    void set_leds(bool led_1_green, bool led_1_red, bool led_2_green, bool led_2_red);
+    void set_pid(double p, double i, double d);
 
     // TODO : Move to another file
     static double ticks_to_meters(uint16_t ticks);
@@ -50,8 +55,11 @@ private:
     void read();
     bool process_packet(const char* buffer, uint8_t length);
     bool find_packet_header();
-    bool checksum(uint8_t packet_length, const char* buffer);
+    uint8_t checksum(uint8_t packet_length, const char* buffer);
+    bool validate_checksum(uint8_t packet_length, const char* buffer);
 
+    template <typename T>
+    void send_msg(const T &msg);
     void request_identifiers();
 
     bool on_msg(const protocol::BasicSensorData& basic_sensor_data);
@@ -66,19 +74,21 @@ private:
     bool on_msg(const protocol::UniqueDeviceIdentifier& udid);
     bool on_msg(const protocol::ControllerInfo& controller_info);
 
-    MUTEX_ASSIGN(BasicData, basic_data);
-    MUTEX_ASSIGN(DockingIR, docking_ir);
-    MUTEX_ASSIGN(InertialData, inertial_data);
-    MUTEX_ASSIGN(CliffData, cliff_data);
-    MUTEX_ASSIGN(Current, current);
-    MUTEX_ASSIGN(GyroData, gyro_data);
-    MUTEX_ASSIGN(GeneralPurposeInput, gpi);
-    MUTEX_ASSIGN(PID, pid);
+    void set_basic_data(const BasicData& basic_data);
+    void set_docking_ir(const DockingIR& docking_ir);
+    void set_inertial_data(const InertialData &inertial_data);
+    void set_cliff_data(const CliffData &cliff_data);
+    void set_current(const Current& current);
+    void set_gyro_data(const GyroData &gyro_data);
+    void set_gpi(const GeneralPurposeInput &gpi);
+    void set_pid(const PID &pid);
 
 private:
     FILE* m_file;
     std::thread m_reading_thread;
     bool m_run;
+
+    protocol::DigitalOutput m_cached_output;
 
     EventField<BasicData> m_basic_data;
     EventField<DockingIR> m_docking_ir;

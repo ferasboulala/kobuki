@@ -85,7 +85,7 @@ T prepare_message(protocol::Command type)
 
 Kobuki* Kobuki::create(const char* device)
 {
-    FILE* file = fopen(device, "r+");
+    FILE* file = fopen(device, "rb+");
     if (!file) {
         log_error("Could not open device file %s", device);
         return nullptr;
@@ -124,7 +124,7 @@ Kobuki* Kobuki::create(const char* device)
     tty.c_cc[VMIN] = sizeof(protocol::PacketHeader);
     tty.c_cc[VTIME] = 0; // Wait forever to get VMIN bytes
 
-    if (tcsetattr(fileno(file), TCSANOW, &tty))
+    if (tcsetattr(fileno(file), TCSAFLUSH, &tty))
     {
         log_error("Could not set new teletype attributes");
         return nullptr;
@@ -141,7 +141,7 @@ Kobuki* Kobuki::create(const char* device)
 }
 
 Kobuki::Kobuki(FILE* file, const std::array<int, N_EFD> &efds)
-    : m_file(file), m_run(true)
+    : m_file(file), m_run(true), m_cached_output(static_cast<protocol::DigitalOutput>(0))
 {
     m_basic_data.efd = efds[0];
     m_docking_ir.efd = efds[1];
@@ -154,6 +154,7 @@ Kobuki::Kobuki(FILE* file, const std::array<int, N_EFD> &efds)
 
     m_reading_thread = std::thread(&Kobuki::read, this);
     request_identifiers();
+    set_leds(false, false, false, false); // Will turn everything down (power and digital output too)
 }
 
 Kobuki::~Kobuki()
@@ -279,7 +280,18 @@ bool Kobuki::process_packet(const char* buffer, uint8_t length)
     return offset == length;
 }
 
-bool Kobuki::checksum(uint8_t packet_length, const char* buffer)
+uint8_t Kobuki::checksum(uint8_t packet_length, const char* buffer)
+{
+    uint8_t cs = packet_length;
+    for (int i = 0; i < packet_length; ++i)
+    {
+        cs ^= buffer[i];
+    }
+
+    return cs;
+}
+
+bool Kobuki::validate_checksum(uint8_t packet_length, const char* buffer)
 {
     uint8_t cs;
     if (fread(&cs, 1, 1, m_file) != sizeof(cs)) {
@@ -287,13 +299,7 @@ bool Kobuki::checksum(uint8_t packet_length, const char* buffer)
         return false;
     }
 
-    cs ^= packet_length;
-    for (int i = 0; i < packet_length; ++i)
-    {
-        cs ^= buffer[i];
-    } 
-
-    return cs ? false : true;
+    return checksum(packet_length, buffer) ^ cs ? false : true;
 }
 
 void Kobuki::read()
@@ -324,7 +330,7 @@ void Kobuki::read()
             return;
         }
 
-        if (!checksum(packet_length, buffer))
+        if (!validate_checksum(packet_length, buffer))
         {
             log_error("Failed checksum. Skipping packet");
             continue;
@@ -363,6 +369,81 @@ UDID Kobuki::get_udid() const
     return m_udid;
 }
 
+template <typename T>
+void Kobuki::send_msg(const T &msg)
+{
+    protocol::PacketHeader header;
+    header.length = sizeof(T);
+    if (write(fileno(m_file), &header, sizeof(header)) != sizeof(header))
+    {
+        log_error("Could not send packet header : %s", strerror(errno));
+        m_run = false;
+        return;
+    }
+
+    if (write(fileno(m_file), &msg, sizeof(T)) != sizeof(T))
+    {
+        log_error("Could not send message : %s", strerror(errno));
+        m_run = false;
+        return;
+    }
+
+    const uint8_t cs = checksum(header.length, reinterpret_cast<const char*>(&msg));
+    if (write(fileno(m_file), &cs, 1 ) != sizeof(cs))
+    {
+        log_error("Could not send checksum : %s", strerror(errno));
+        m_run = false;
+    }
+}
+
+void Kobuki::set_motion(double velocity, double radius)
+{
+    auto msg = prepare_message<protocol::MotionMessage>(protocol::Command::Motion);
+    msg.velocity = velocity * 1000; // m/s to mm/s
+    msg.radius = radius * 1000; // m to mm
+
+    send_msg(msg);
+}
+
+void Kobuki::set_sound(double frequency, double duration)
+{
+    auto msg = prepare_message<protocol::SoundMessage>(protocol::Command::Sound);
+    constexpr double A = 0.00000275;
+    msg.period = 1.0 / (frequency * A);
+    msg.duration = duration * 1000; // s to ms
+
+    send_msg(msg);
+}
+
+void Kobuki::set_sound_sequence(SoundSequence sequence)
+{
+    auto msg = prepare_message<protocol::SoundSequence>(protocol::Command::SoundSequence);
+    msg.sequence_number = static_cast<protocol::SoundSequenceNumber>(sequence);
+
+    send_msg(msg);
+}
+
+void Kobuki::set_leds(bool led_1_green, bool led_1_red, bool led_2_green, bool led_2_red)
+{
+    auto msg = prepare_message<protocol::GeneralPurposeOutput>(protocol::Command::GeneralPurposeOutput);
+    msg.digital_output = m_cached_output;
+    m_cached_output &= ~(
+            protocol::DigitalOutput::LED_1_Red |
+            protocol::DigitalOutput::LED_1_Green |
+            protocol::DigitalOutput::LED_2_Red |
+            protocol::DigitalOutput::LED_2_Green
+    );
+
+    if (led_1_green) m_cached_output |= protocol::DigitalOutput::LED_1_Green;
+    if (led_1_red)   m_cached_output |= protocol::DigitalOutput::LED_1_Red;
+    if (led_2_green) m_cached_output |= protocol::DigitalOutput::LED_2_Green;
+    if (led_2_red)   m_cached_output |= protocol::DigitalOutput::LED_2_Red;
+
+    msg.digital_output = m_cached_output;
+
+    send_msg(msg);
+}
+
 MUTEX_ASSIGN_IMPL(BasicData, basic_data);
 MUTEX_ASSIGN_IMPL(DockingIR, docking_ir);
 MUTEX_ASSIGN_IMPL(InertialData, inertial_data);
@@ -389,11 +470,11 @@ bool Kobuki::on_msg(const protocol::BasicSensorData& basic_sensor_data)
     basic_data.right_data.cliff_sensed = basic_sensor_data.cliff & protocol::Side::Right;
     basic_data.center_data.cliff_sensed = basic_sensor_data.cliff & protocol::Side::Center;
 
-    basic_data.encoder_left = basic_sensor_data.left_encoder;
-    basic_data.encoder_right = basic_sensor_data.right_encoder;
+    basic_data.left_data.encoder = basic_sensor_data.left_encoder;
+    basic_data.right_data.encoder = basic_sensor_data.right_encoder;
 
-    basic_data.pwm_left = basic_sensor_data.left_pwm;
-    basic_data.pwm_right = basic_sensor_data.right_pwm;
+    basic_data.left_data.pwm = basic_sensor_data.left_pwm;
+    basic_data.right_data.pwm = basic_sensor_data.right_pwm;
 
     basic_data.buttons.set(0, basic_sensor_data.button & protocol::Button::Button_0);
     basic_data.buttons.set(1, basic_sensor_data.button & protocol::Button::Button_1);
@@ -477,7 +558,7 @@ bool Kobuki::on_msg(const protocol::Current& current)
 bool Kobuki::on_msg(const protocol::HardwareVersion& hardware_version)
 {
     char buffer[256] = {0};
-    snprintf(buffer, sizeof(buffer), "%ld.%ld.%ld",
+    snprintf(buffer, sizeof(buffer), "%d.%d.%d",
             static_cast<int>(hardware_version.major_1),
             static_cast<int>(hardware_version.minor_1),
             static_cast<int>(hardware_version.patch)
@@ -491,7 +572,7 @@ bool Kobuki::on_msg(const protocol::HardwareVersion& hardware_version)
 bool Kobuki::on_msg(const protocol::FirmwareVersion& firmware_version)
 {
     char buffer[256] = {0};
-    snprintf(buffer, sizeof(buffer), "%ld.%ld.%ld",
+    snprintf(buffer, sizeof(buffer), "%d.%d.%d",
             static_cast<int>(firmware_version.major_1),
             static_cast<int>(firmware_version.minor_1),
             static_cast<int>(firmware_version.patch)
@@ -570,12 +651,7 @@ void Kobuki::request_identifiers()
         protocol::RequestExtraFlag::FirmwareVersion |
         protocol::RequestExtraFlag::UDID;
 
-    const int bytes_written = fwrite(&request_extra, 1, sizeof(request_extra), m_file);
-    if (bytes_written != sizeof(request_extra))
-    {
-        log_error("Could not request id info from the robot %d vs %lu", bytes_written, sizeof(request_extra));
-        m_run = false;
-    }
+    send_msg(request_extra);
 }
 
 // TODO : Move to another file

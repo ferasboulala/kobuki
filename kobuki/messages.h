@@ -5,11 +5,24 @@
 
 namespace kobuki {
 
+enum class SoundSequence : uint8_t {
+    On = 0,
+    Off,
+    Recharge,
+    Button,
+    Error,
+    CleaningStart,
+    CleaningStop,
+};
+
 struct BasicSideData {
     bool bumped;
-    bool wheel_dropped;
     bool cliff_sensed;
+    // The following are no-op for center data
+    bool wheel_dropped;
     bool overcurrent;
+    uint16_t encoder;
+    uint8_t pwm;
 };
 
 struct BasicData {
@@ -17,10 +30,6 @@ struct BasicData {
     BasicSideData left_data;
     BasicSideData right_data;
     BasicSideData center_data;
-    uint16_t encoder_left;
-    uint16_t encoder_right;
-    uint8_t pwm_left;
-    uint8_t pwm_right;
     std::bitset<3> buttons;
     bool is_charged;
     bool is_charging;

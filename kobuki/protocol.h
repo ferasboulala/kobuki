@@ -48,20 +48,20 @@ struct MotionMessage : CommandSubPayloadHeader {
 static_assert(sizeof(MotionMessage) == sizeof(CommandSubPayloadHeader) + 4, "Unexpected size");
 
 struct SoundMessage : CommandSubPayloadHeader {
-    uint16_t frequency;
+    uint16_t period;
     uint8_t duration;
 } __attribute__((__packed__));
 
 static_assert(sizeof(SoundMessage) == sizeof(CommandSubPayloadHeader) + 3, "Unexpected size");
 
 enum class SoundSequenceNumber : uint8_t {
-    ON = 0,
-    OFF,
-    RECHARGE,
-    BUTTON,
-    ERROR,
-    CLEANING_START,
-    CLEANING_STOP,
+    On = 0,
+    Off,
+    Recharge,
+    Button,
+    Error,
+    CleaningStart,
+    CleaningStop,
 };
 
 struct SoundSequence : CommandSubPayloadHeader {
@@ -88,19 +88,39 @@ struct RequestExtra : CommandSubPayloadHeader {
 static_assert(sizeof(RequestExtra) == sizeof(CommandSubPayloadHeader) + 2, "Unexpected size");
 
 enum class DigitalOutput : uint16_t {
-    CHANNEL_0    = 0x0001,
-    CHANNEL_1    = 0x0002,
-    CHANNEL_3    = 0x0004,
-    CHANNEL_4    = 0x0008,
-    POWER_3_3    = 0x0010,
-    POWER_5      = 0x0020,
-    POWER_12_5   = 0x0040,
-    POWER_12_1_5 = 0x0080,
-    LED_1        = 0x0100,
-    LED_2        = 0x0200,
-    LED_3        = 0x0400,
-    LED_4        = 0x0800,
+    Channel_0    = 0x0001,
+    Channel_1    = 0x0002,
+    Channel_2    = 0x0004,
+    Channel_3    = 0x0008,
+    Power_3_3    = 0x0010,
+    Power_5      = 0x0020,
+    Power_12_5   = 0x0040,
+    Power_12_1_5 = 0x0080,
+    LED_1_Red    = 0x0100,
+    LED_1_Green  = 0x0200,
+    LED_2_Red    = 0x0400,
+    LED_2_Green  = 0x0800,
 };
+
+inline DigitalOutput operator|=(DigitalOutput& lhs, const DigitalOutput& rhs)
+{
+    return lhs = static_cast<DigitalOutput>(static_cast<uint16_t>(lhs) | static_cast<uint16_t>(rhs));
+}
+
+inline DigitalOutput operator&=(DigitalOutput& lhs, const DigitalOutput& rhs)
+{
+    return lhs = static_cast<DigitalOutput>(static_cast<uint16_t>(lhs) & static_cast<uint16_t>(rhs));
+}
+
+inline DigitalOutput operator|(const DigitalOutput& lhs, const DigitalOutput& rhs)
+{
+    return static_cast<DigitalOutput>(static_cast<uint16_t>(lhs) | static_cast<uint16_t>(rhs));
+}
+
+inline DigitalOutput operator~(const DigitalOutput& lhs)
+{
+    return static_cast<DigitalOutput>(~static_cast<uint16_t>(lhs));
+}
 
 struct GeneralPurposeOutput : CommandSubPayloadHeader {
     DigitalOutput digital_output;
