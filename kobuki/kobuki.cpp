@@ -266,8 +266,11 @@ MUTEX_ACCESSOR_IMPL(DockingIR, docking_ir);
 MUTEX_ACCESSOR_IMPL(InertialData, inertial_data);
 MUTEX_ACCESSOR_IMPL(CliffData, cliff_data);
 MUTEX_ACCESSOR_IMPL(Current, current);
+MUTEX_ACCESSOR_IMPL(std::string, hardware_version);
+MUTEX_ACCESSOR_IMPL(std::string, firmware_version);
 MUTEX_ACCESSOR_IMPL(GyroData, gyro_data);
 MUTEX_ACCESSOR_IMPL(GeneralPurposeInput, gpi);
+MUTEX_ACCESSOR_IMPL(UDID, udid);
 MUTEX_ACCESSOR_IMPL(PID, pid);
 
 MUTEX_ASSIGN_IMPL(BasicData, basic_data);
@@ -275,8 +278,11 @@ MUTEX_ASSIGN_IMPL(DockingIR, docking_ir);
 MUTEX_ASSIGN_IMPL(InertialData, inertial_data);
 MUTEX_ASSIGN_IMPL(CliffData, cliff_data);
 MUTEX_ASSIGN_IMPL(Current, current);
+MUTEX_ASSIGN_IMPL(std::string, hardware_version);
+MUTEX_ASSIGN_IMPL(std::string, firmware_version);
 MUTEX_ASSIGN_IMPL(GyroData, gyro_data);
 MUTEX_ASSIGN_IMPL(GeneralPurposeInput, gpi);
+MUTEX_ASSIGN_IMPL(UDID, udid);
 MUTEX_ASSIGN_IMPL(PID, pid);
 
 bool Kobuki::on_msg(const protocol::BasicSensorData& basic_sensor_data)
@@ -435,16 +441,50 @@ bool Kobuki::on_msg(const protocol::RawData3AxisGyro& raw_gyro_data)
 
 bool Kobuki::on_msg(const protocol::GeneralPurposeInput& gpi)
 {
+    GeneralPurposeInput general_purpose_input;
+    memset(&general_purpose_input, sizeof(GeneralPurposeInput), 0);
+
+    general_purpose_input.digital_inputs.set(0, gpi.digital_input & protocol::DigitalInput::Channel_0);
+    general_purpose_input.digital_inputs.set(1, gpi.digital_input & protocol::DigitalInput::Channel_1);
+    general_purpose_input.digital_inputs.set(2, gpi.digital_input & protocol::DigitalInput::Channel_2);
+    general_purpose_input.digital_inputs.set(3, gpi.digital_input & protocol::DigitalInput::Channel_3);
+
+    constexpr double DAC = 3.3 / 4096;
+    general_purpose_input.voltage_0 = DAC * gpi.analog_input_0;
+    general_purpose_input.voltage_1 = DAC * gpi.analog_input_1;
+    general_purpose_input.voltage_2 = DAC * gpi.analog_input_2;
+    general_purpose_input.voltage_3 = DAC * gpi.analog_input_3;
+
+    set_gpi(general_purpose_input);
+
     return true;
 }
 
 bool Kobuki::on_msg(const protocol::UniqueDeviceIdentifier& udid)
 {
+    UDID unique_device_identifier;
+    memset(&unique_device_identifier, sizeof(UDID), 0);
+
+    unique_device_identifier.id_0 = udid.id_0;
+    unique_device_identifier.id_1 = udid.id_1;
+    unique_device_identifier.id_2 = udid.id_2;
+
+    set_udid(unique_device_identifier);
+
     return true;
 }
 
 bool Kobuki::on_msg(const protocol::ControllerInfo& controller_info)
 {
+    PID pid;
+    memset(&pid, sizeof(PID), 0);
+
+    pid.P = controller_info.proportional / 1000;
+    pid.I = controller_info.integral / 1000;
+    pid.D = controller_info.derivate / 1000;
+
+    set_pid(pid);
+
     return true;
 }
 

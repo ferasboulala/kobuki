@@ -316,6 +316,16 @@ enum class DigitalInput : uint16_t {
     Channel_3 = 0x08,
 };
 
+uint8_t operator&(const DigitalInput& lhs, const DigitalInput& rhs)
+{
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+}
+
+uint8_t operator|(const DigitalInput& lhs, const DigitalInput& rhs)
+{
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+}
+
 struct GeneralPurposeInput : FeedbackSubPayloadHeader {
     DigitalInput digital_input;
     uint16_t analog_input_0;
@@ -328,7 +338,9 @@ struct GeneralPurposeInput : FeedbackSubPayloadHeader {
 static_assert(sizeof(GeneralPurposeInput) == sizeof(FeedbackSubPayloadHeader) + 16, "Unexpected size");
 
 struct UniqueDeviceIdentifier : FeedbackSubPayloadHeader {
-    char id[12];
+    uint32_t id_0;
+    uint32_t id_1;
+    uint32_t id_2;
 }__attribute__((__packed__));
 
 static_assert(sizeof(UniqueDeviceIdentifier) == sizeof(FeedbackSubPayloadHeader) + 12, "Unexpected size");

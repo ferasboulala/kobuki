@@ -71,6 +71,12 @@ struct GeneralPurposeInput {
     double voltage_3;
 };
 
+struct UDID {
+    uint32_t id_0;
+    uint32_t id_1;
+    uint32_t id_2;
+};
+
 struct PID {
     double P;
     double I;

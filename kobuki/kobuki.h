@@ -36,6 +36,7 @@ public:
     MUTEX_ACCESSOR(std::string, firmware_version);
     MUTEX_ACCESSOR(GyroData, gyro_data);
     MUTEX_ACCESSOR(GeneralPurposeInput, gpi);
+    MUTEX_ACCESSOR(UDID, udid);
     MUTEX_ACCESSOR(PID, pid);
 
     // TODO : Move to another file
@@ -69,6 +70,7 @@ private:
     MUTEX_ASSIGN(std::string, firmware_version);
     MUTEX_ASSIGN(GyroData, gyro_data);
     MUTEX_ASSIGN(GeneralPurposeInput, gpi);
+    MUTEX_ASSIGN(UDID, udid);
     MUTEX_ASSIGN(PID, pid);
 
 private:
@@ -85,6 +87,7 @@ private:
     EventField<std::string> m_firmware_version;
     EventField<GyroData> m_gyro_data;
     EventField<GeneralPurposeInput> m_gpi;
+    EventField<UDID> m_udid;
     EventField<PID> m_pid;
 };
 
