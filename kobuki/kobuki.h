@@ -1,5 +1,7 @@
 #pragma once
 
+#include "messages.h"
+
 #include <string>
 #include <optional>
 
@@ -16,7 +18,7 @@ public:
     static Kobuki* create(const char* device = "/dev/kobuki");
     ~Kobuki();
 
-    static double tick_to_meters(uint16_t ticks);
+    static double ticks_to_meters(uint16_t ticks);
 private:
     Kobuki(FILE* file);
 
@@ -25,7 +27,7 @@ private:
 
     EventField<BasicData> m_basic_data;
     EventField<DockingIR> m_docking_signals;
-    EventField<InterialData> m_intertial_data;
+    EventField<InertialData> m_intertial_data;
     EventField<CliffData> m_cliff_data;
     EventField<Current> m_current;
     EventField<GyroData> m_gyro_data;

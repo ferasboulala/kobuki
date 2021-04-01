@@ -55,17 +55,17 @@ static void stdout_callback(log_Event *ev) {
   buf[strftime(buf, sizeof(buf), "%H:%M:%S", ev->time)] = '\0';
 #ifdef LOG_USE_COLOR
   fprintf(
-    ev->udata, "%s %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
+    reinterpret_cast<FILE*>(ev->udata), "%s %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
     buf, level_colors[ev->level], level_strings[ev->level],
     ev->file, ev->line);
 #else
   fprintf(
-    ev->udata, "%s %-5s %s:%d: ",
+    reinterpret_cast<FILE*>(ev->udata), "%s %-5s %s:%d: ",
     buf, level_strings[ev->level], ev->file, ev->line);
 #endif
-  vfprintf(ev->udata, ev->fmt, ev->ap);
-  fprintf(ev->udata, "\n");
-  fflush(ev->udata);
+  vfprintf(reinterpret_cast<FILE*>(ev->udata), ev->fmt, ev->ap);
+  fprintf(reinterpret_cast<FILE*>(ev->udata), "\n");
+  fflush(reinterpret_cast<FILE*>(ev->udata));
 }
 
 
@@ -73,11 +73,11 @@ static void file_callback(log_Event *ev) {
   char buf[64];
   buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ev->time)] = '\0';
   fprintf(
-    ev->udata, "%s %-5s %s:%d: ",
+    reinterpret_cast<FILE*>(ev->udata), "%s %-5s %s:%d: ",
     buf, level_strings[ev->level], ev->file, ev->line);
-  vfprintf(ev->udata, ev->fmt, ev->ap);
-  fprintf(ev->udata, "\n");
-  fflush(ev->udata);
+  vfprintf(reinterpret_cast<FILE*>(ev->udata), ev->fmt, ev->ap);
+  fprintf(reinterpret_cast<FILE*>(ev->udata), "\n");
+  fflush(reinterpret_cast<FILE*>(ev->udata));
 }
 
 
@@ -137,6 +137,7 @@ static void init_event(log_Event *ev, void *udata) {
 }
 
 
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 void log_log(int level, const char *file, int line, const char *fmt, ...) {
   log_Event ev = {
     .fmt   = fmt,
@@ -144,6 +145,7 @@ void log_log(int level, const char *file, int line, const char *fmt, ...) {
     .line  = line,
     .level = level,
   };
+#pragma GCC diagnostic pop
 
   lock();
 

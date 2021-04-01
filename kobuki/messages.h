@@ -1,4 +1,7 @@
+#pragma once
+
 #include <bitset>
+#include <cstdint>
 
 namespace kobuki {
 
@@ -39,7 +42,7 @@ struct DockingIR {
     DockingSignal center;
 };
 
-struct IntertialData {
+struct InertialData {
     uint16_t angle;
     uint16_t angle_rate;
 };

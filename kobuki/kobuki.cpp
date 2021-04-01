@@ -1,6 +1,9 @@
-#include "protocol.h"
+#include "kobuki.h"
 
+#include "protocol.h"
 #include "messages.h"
+
+#include "log.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -19,7 +22,7 @@ constexpr double wheel_radius_m = 0.034;
 
 namespace kobuki {
 
-Kobuki* Kobuki::create(const char* device = "/dev/kobuki")
+Kobuki* Kobuki::create(const char* device)
 {
     FILE* file = fopen(device, "rw");
     if (!file) {
@@ -41,7 +44,7 @@ Kobuki* Kobuki::create(const char* device = "/dev/kobuki")
     tty.c_cflag &= ~CSTOPB; // 1 stop bit
     tty.c_cflag &= ~PARENB; // no parity bit
 
-    tty.c_cc[VMIN] = sizeof(PacketHeader); // Need to read 64 bytes at least before returning
+    tty.c_cc[VMIN] = sizeof(protocol::PacketHeader); // Need to read 64 bytes at least before returning
     tty.c_cc[VTIME] = 0; // Wait forever to get VMIN bytes
 
     if (tcsetattr(fileno(file), TCSANOW, &tty))

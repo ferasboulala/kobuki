@@ -1,3 +1,7 @@
+#pragma once
+
+#include <cstdint>
+
 namespace kobuki {
 namespace protocol {
 
@@ -160,7 +164,7 @@ enum class Charger : uint8_t {
 };
 
 struct BasicSensorData : FeedbackSubPayloadHeader {
-    uint16_t timestamp_ms,
+    uint16_t timestamp_ms;
     Side bumper;
     Wheel wheel_drop;
     Side cliff;
@@ -199,7 +203,7 @@ struct InertialSensorData : FeedbackSubPayloadHeader {
     char unused[3];
 }__attribute__((__packed__));
 
-static_assert(sizeof(IntertialSensorData) == sizeof(FeedbackSubPayloadHeader) + 7, "Unexpected size");
+static_assert(sizeof(InertialSensorData) == sizeof(FeedbackSubPayloadHeader) + 7, "Unexpected size");
 
 struct CliffSensorData : FeedbackSubPayloadHeader {
     uint16_t right_voltage;
