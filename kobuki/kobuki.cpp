@@ -6,21 +6,54 @@
 #include "log.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <termios.h>
+#include <sys/poll.h>
+#include <sys/eventfd.h>
 
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#define MUTEX_ACCESSOR_IMPL(type, label) \
+    bool Kobuki::label(type& label, bool block) \
+    { \
+        const int timeout = block ? std::numeric_limits<int>::max() : 0;\
+        struct pollfd fd;\
+        fd.fd = m_##label.efd;\
+        fd.events = POLLIN;\
+        const int updated = poll(&fd, 1, timeout);\
+        if (!updated) return false;\
+        std::lock_guard<std::mutex> guard(m_##label.mutex);\
+        label = m_##label.field;\
+        return true;\
+    }
+
 namespace {
 constexpr int ticks_per_revolution = 52;
-constexpr double gear_ratio = 6545 / 132;
+constexpr double gear_ratio = 6545.0 / 132;
 constexpr double wheel_radius_m = 0.034;
 
 } // namespace
 
 namespace kobuki {
+template <size_t N>
+bool create_efds(std::array<int, N> &efds)
+{
+    for (size_t i = 0; i < N; ++i)
+    {
+        const int efd = eventfd(0, EFD_NONBLOCK);
+        if (efd == -1)
+        {
+            log_error("Could not create event file descriptor #%lu : %s", i, strerror(errno));
+            return false;
+        }
+        efds[i] = efd;
+    }
+
+    return true;
+}
 
 Kobuki* Kobuki::create(const char* device)
 {
@@ -44,7 +77,7 @@ Kobuki* Kobuki::create(const char* device)
     tty.c_cflag &= ~CSTOPB; // 1 stop bit
     tty.c_cflag &= ~PARENB; // no parity bit
 
-    tty.c_cc[VMIN] = sizeof(protocol::PacketHeader); // Need to read 64 bytes at least before returning
+    tty.c_cc[VMIN] = sizeof(protocol::PacketHeader);
     tty.c_cc[VTIME] = 0; // Wait forever to get VMIN bytes
 
     if (tcsetattr(fileno(file), TCSANOW, &tty))
@@ -53,18 +86,57 @@ Kobuki* Kobuki::create(const char* device)
         return nullptr;
     }
 
-    return new Kobuki(file);
+    std::array<int, N_EFD> efds;
+    if (!create_efds(efds))
+    {
+        log_error("Could not create event file descriptors");
+        return nullptr;
+    }
+
+    return new Kobuki(file, efds);
 }
 
-Kobuki::Kobuki(FILE* file)
-    : m_file(file)
+Kobuki::Kobuki(FILE* file, const std::array<int, N_EFD> &efds)
+    : m_file(file), m_run(true)
 {
+    m_basic_data.efd = efds[0];
+    m_docking_ir.efd = efds[1];
+    m_inertial_data.efd = efds[2];
+    m_cliff_data.efd = efds[3];
+    m_current.efd = efds[4];
+    m_gyro_data.efd = efds[5];
+    m_gpi.efd = efds[6];
+    m_pid.efd = efds[7];
+
+    m_reading_thread = std::thread(&Kobuki::read, this);
 }
 
 Kobuki::~Kobuki()
 {
+    m_run = false;
+    m_reading_thread.join();
     fclose(m_file);
 }
+
+void Kobuki::read()
+{
+    while (m_run)
+    {
+        // Block on the read()
+        // Wait until you get the start byte sequence.
+        // Once you get it, read enough bytes to get the header.
+        // If for whatever reason there is an error, restart from scratch
+    }
+}
+
+MUTEX_ACCESSOR_IMPL(BasicData, basic_data);
+MUTEX_ACCESSOR_IMPL(DockingIR, docking_ir);
+MUTEX_ACCESSOR_IMPL(InertialData, inertial_data);
+MUTEX_ACCESSOR_IMPL(CliffData, cliff_data);
+MUTEX_ACCESSOR_IMPL(Current, current);
+MUTEX_ACCESSOR_IMPL(GyroData, gyro_data);
+MUTEX_ACCESSOR_IMPL(GeneralPurposeInput, gpi);
+MUTEX_ACCESSOR_IMPL(PID, pid);
 
 double Kobuki::ticks_to_meters(uint16_t ticks) {
     return ticks * wheel_radius_m * 2 * M_PI / ticks_per_revolution / gear_ratio;

@@ -10,9 +10,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/../bin/")
 project(kobuki)
 include_directories("${PROJECT_SOURCE_DIR}/kobuki")
 file(GLOB PROJECT_SOURCES "${PROJECT_SOURCE_DIR}/kobuki/*.cpp")
+find_package(Threads REQUIRED)
 
 add_executable(kobuki_test
     "${PROJECT_SOURCE_DIR}/test/test.cpp"
     ${PROJECT_SOURCES}
 )
-target_link_libraries(kobuki_test)
+target_link_libraries(kobuki_test -pthread)

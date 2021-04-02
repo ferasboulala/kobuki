@@ -22,6 +22,8 @@
 
 #include "log.h"
 
+#define LOG_USE_COLOR
+
 #define MAX_CALLBACKS 32
 
 typedef struct {
