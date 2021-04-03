@@ -23,6 +23,8 @@ public:
     static Kobuki* create(const char* device = "/dev/kobuki");
     ~Kobuki();
 
+    bool ok() const { return m_run; }
+
     MUTEX_ACCESSOR(BasicData, basic_data);
     MUTEX_ACCESSOR(DockingIR, docking_ir);
     MUTEX_ACCESSOR(InertialData, inertial_data);
@@ -32,6 +34,7 @@ public:
     MUTEX_ACCESSOR(GeneralPurposeInput, gpi);
     MUTEX_ACCESSOR(PID, pid);
 
+    // TODO : Move to another file
     static double ticks_to_meters(uint16_t ticks);
 private:
     static constexpr size_t N_EFD = 8;

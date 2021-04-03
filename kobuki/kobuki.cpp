@@ -19,6 +19,7 @@
 #define MUTEX_ACCESSOR_IMPL(type, label) \
     bool Kobuki::label(type& label, bool block) \
     { \
+        if (!ok()) return false;\
         const int timeout = block ? std::numeric_limits<int>::max() : 0;\
         struct pollfd fd;\
         fd.fd = m_##label.efd;\
@@ -118,14 +119,41 @@ Kobuki::~Kobuki()
     fclose(m_file);
 }
 
+bool find_packet_header(FILE* file)
+{
+    constexpr uint8_t HEADER[] = { protocol::HEADER_0_VAL, protocol::HEADER_1_VAL };
+    int matches = 0;
+    while (matches != sizeof(HEADER))
+    {
+        for (size_t i = 0; i < sizeof(HEADER); ++i, ++matches)
+        {
+            char buffer;
+            int bytes_read = fread(&buffer, 1, 1, file);
+            if (bytes_read != 1) {
+                log_error("Could not read packet header");
+                return false;
+            }
+
+            if (buffer != HEADER[0]) {
+                matches = 0;
+                break;
+            }
+        }
+    }
+
+    return true;
+}
+
 void Kobuki::read()
 {
-    while (m_run)
+    while (ok())
     {
-        // Block on the read()
-        // Wait until you get the start byte sequence.
-        // Once you get it, read enough bytes to get the header.
-        // If for whatever reason there is an error, restart from scratch
+        if (!find_packet_header(m_file))
+        {
+            log_error("Could not find packet header");
+            m_run = false;
+            return;
+        }
     }
 }
 
@@ -138,6 +166,7 @@ MUTEX_ACCESSOR_IMPL(GyroData, gyro_data);
 MUTEX_ACCESSOR_IMPL(GeneralPurposeInput, gpi);
 MUTEX_ACCESSOR_IMPL(PID, pid);
 
+// TODO : Move to another file
 double Kobuki::ticks_to_meters(uint16_t ticks) {
     return ticks * wheel_radius_m * 2 * M_PI / ticks_per_revolution / gear_ratio;
 }

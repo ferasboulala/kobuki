@@ -5,10 +5,16 @@
 namespace kobuki {
 namespace protocol {
 
+constexpr uint8_t HEADER_0_VAL = 0xAA;
+constexpr uint8_t HEADER_1_VAL = 0x55;
+
 struct PacketHeader {
-    const uint16_t HEADER = 0xAA55;
+    const uint8_t HEADER_0 = HEADER_0_VAL;
+    const uint8_t HEADER_1 = HEADER_1_VAL;
     uint8_t length;
 } __attribute__((__packed__));
+
+static_assert(sizeof(PacketHeader) == 3, "Unexpected size");
 
 enum class Commands : uint8_t {
     Motion = 1,
@@ -26,8 +32,6 @@ enum class Commands : uint8_t {
     SetControllerGain,
     GetControllerGain,
 };
-
-static_assert(sizeof(PacketHeader) == 3, "Unexpected size");
 
 struct CommandSubPayloadHeader {
     Commands type;
