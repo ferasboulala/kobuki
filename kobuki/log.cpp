@@ -159,7 +159,13 @@ init_event(log_Event* ev, void* udata)
 void
 log_log(int level, const char* file, int line, const char* fmt, ...)
 {
-    log_Event ev = { va_list(), fmt, file, nullptr, nullptr, line, level };
+    log_Event ev;
+    ev.fmt = fmt;
+    ev.file = file;
+    ev.time = nullptr;
+    ev.udata = nullptr;
+    ev.line = line;
+    ev.level = level;
 
     lock();
 
