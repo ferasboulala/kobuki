@@ -82,10 +82,12 @@ int main()
             case 119:  // W
                 vel = accelerate(vel, ACC, MAX_TRANS_VELOCITY);
                 robot->pure_translation(vel);
+                robot->set_leds(true, false, false, false);
                 break;
             case 115:  // S
                 vel = accelerate(vel, -ACC, -MAX_TRANS_VELOCITY);
                 robot->pure_translation(vel);
+                robot->set_leds(false, true, false, false);
                 break;
             case 97:  // A
                 if (vel)
@@ -95,6 +97,7 @@ int main()
                 }
                 else
                     robot->pure_rotation(MAX_ROT_VELOCITY_SMOOTH / 2);
+                robot->set_leds(false, true, true, false);
                 break;
             case 100:  // D
                 if (vel)
@@ -104,14 +107,17 @@ int main()
                 }
                 else
                     robot->pure_rotation(-MAX_ROT_VELOCITY_SMOOTH / 2);
+                robot->set_leds(true, false, false, true);
                 break;
             case 113:  // Q
                 robot->set_motion(0, 0);
                 quit = true;
+                robot->set_leds(false, false, false, false);
                 break;
             default:
                 vel = accelerate(vel, vel > 0 ? -ACC : ACC, 0);
                 robot->pure_translation(vel);
+                robot->set_leds(false, true, false, true);
                 break;
         }
         flushinp();
