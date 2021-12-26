@@ -1,4 +1,8 @@
-BasedOnStyle: Mozilla
+BasedOnStyle: Google
 IndentWidth: 4
-ColumnLimit: 80
+ColumnLimit: 120
 BreakBeforeBraces: Allman
+AccessModifierOffset: -4
+
+BinPackArguments: false
+BinPackParameters: false

@@ -5,7 +5,6 @@
 
 namespace kobuki
 {
-
 enum class SoundSequence : uint8_t
 {
     On = 0,
@@ -105,4 +104,4 @@ struct PID
     double D;
 };
 
-} // namespace kobuki
+}  // namespace kobuki

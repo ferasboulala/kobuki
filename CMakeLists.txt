@@ -4,16 +4,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Werror -Wall -Wextra -Wforma
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(ALL_LIBRARIES)
-set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/../bin/")
 
 project(kobuki)
 include_directories("${PROJECT_SOURCE_DIR}/kobuki")
 file(GLOB PROJECT_SOURCES "${PROJECT_SOURCE_DIR}/kobuki/*.cpp")
 find_package(Threads REQUIRED)
 
-add_executable(kobuki_test
-    "${PROJECT_SOURCE_DIR}/test/test.cpp"
+add_executable(teleop
+    "${PROJECT_SOURCE_DIR}/apps/teleop.cpp"
     ${PROJECT_SOURCES}
 )
-target_link_libraries(kobuki_test -pthread)
+target_link_libraries(teleop -pthread -lncurses)

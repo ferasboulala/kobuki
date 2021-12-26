@@ -6,7 +6,6 @@ namespace kobuki
 {
 namespace protocol
 {
-
 constexpr uint8_t HEADER_0_VAL = 0xAA;
 constexpr uint8_t HEADER_1_VAL = 0x55;
 
@@ -51,8 +50,7 @@ struct MotionMessage : CommandSubPayloadHeader
     int16_t radius;
 } __attribute__((__packed__));
 
-static_assert(sizeof(MotionMessage) == sizeof(CommandSubPayloadHeader) + 4,
-              "Unexpected size");
+static_assert(sizeof(MotionMessage) == sizeof(CommandSubPayloadHeader) + 4, "Unexpected size");
 
 struct SoundMessage : CommandSubPayloadHeader
 {
@@ -60,8 +58,7 @@ struct SoundMessage : CommandSubPayloadHeader
     uint8_t duration;
 } __attribute__((__packed__));
 
-static_assert(sizeof(SoundMessage) == sizeof(CommandSubPayloadHeader) + 3,
-              "Unexpected size");
+static_assert(sizeof(SoundMessage) == sizeof(CommandSubPayloadHeader) + 3, "Unexpected size");
 
 enum class SoundSequenceNumber : uint8_t
 {
@@ -79,8 +76,7 @@ struct SoundSequence : CommandSubPayloadHeader
     SoundSequenceNumber sequence_number;
 } __attribute__((__packed__));
 
-static_assert(sizeof(SoundSequence) == sizeof(CommandSubPayloadHeader) + 1,
-              "Unexpected size");
+static_assert(sizeof(SoundSequence) == sizeof(CommandSubPayloadHeader) + 1, "Unexpected size");
 
 enum class RequestExtraFlag : uint16_t
 {
@@ -89,11 +85,9 @@ enum class RequestExtraFlag : uint16_t
     UDID = 0x08,
 };
 
-inline RequestExtraFlag
-operator|(const RequestExtraFlag& lhs, const RequestExtraFlag& rhs)
+inline RequestExtraFlag operator|(const RequestExtraFlag& lhs, const RequestExtraFlag& rhs)
 {
-    return static_cast<RequestExtraFlag>(static_cast<uint16_t>(lhs) |
-                                         static_cast<uint16_t>(rhs));
+    return static_cast<RequestExtraFlag>(static_cast<uint16_t>(lhs) | static_cast<uint16_t>(rhs));
 }
 
 struct RequestExtra : CommandSubPayloadHeader
@@ -101,8 +95,7 @@ struct RequestExtra : CommandSubPayloadHeader
     RequestExtraFlag flags;
 } __attribute__((__packed__));
 
-static_assert(sizeof(RequestExtra) == sizeof(CommandSubPayloadHeader) + 2,
-              "Unexpected size");
+static_assert(sizeof(RequestExtra) == sizeof(CommandSubPayloadHeader) + 2, "Unexpected size");
 
 enum class DigitalOutput : uint16_t
 {
@@ -120,25 +113,19 @@ enum class DigitalOutput : uint16_t
     LED_2_Green = 0x0800,
 };
 
-inline DigitalOutput
-operator|=(DigitalOutput& lhs, const DigitalOutput& rhs)
+inline DigitalOutput operator|=(DigitalOutput& lhs, const DigitalOutput& rhs)
 {
-    return lhs = static_cast<DigitalOutput>(static_cast<uint16_t>(lhs) |
-                                            static_cast<uint16_t>(rhs));
+    return lhs = static_cast<DigitalOutput>(static_cast<uint16_t>(lhs) | static_cast<uint16_t>(rhs));
 }
 
-inline DigitalOutput
-operator&=(DigitalOutput& lhs, const DigitalOutput& rhs)
+inline DigitalOutput operator&=(DigitalOutput& lhs, const DigitalOutput& rhs)
 {
-    return lhs = static_cast<DigitalOutput>(static_cast<uint16_t>(lhs) &
-                                            static_cast<uint16_t>(rhs));
+    return lhs = static_cast<DigitalOutput>(static_cast<uint16_t>(lhs) & static_cast<uint16_t>(rhs));
 }
 
-inline DigitalOutput
-operator|(const DigitalOutput& lhs, const DigitalOutput& rhs)
+inline DigitalOutput operator|(const DigitalOutput& lhs, const DigitalOutput& rhs)
 {
-    return static_cast<DigitalOutput>(static_cast<uint16_t>(lhs) |
-                                      static_cast<uint16_t>(rhs));
+    return static_cast<DigitalOutput>(static_cast<uint16_t>(lhs) | static_cast<uint16_t>(rhs));
 }
 
 inline DigitalOutput operator~(const DigitalOutput& lhs)
@@ -151,9 +138,7 @@ struct GeneralPurposeOutput : CommandSubPayloadHeader
     DigitalOutput digital_output;
 } __attribute__((__packed__));
 
-static_assert(sizeof(GeneralPurposeOutput) ==
-                sizeof(CommandSubPayloadHeader) + 2,
-              "Unexpected size");
+static_assert(sizeof(GeneralPurposeOutput) == sizeof(CommandSubPayloadHeader) + 2, "Unexpected size");
 
 enum class GainType : uint8_t
 {
@@ -169,16 +154,14 @@ struct SetControllerGain : CommandSubPayloadHeader
     int32_t derivate;
 } __attribute__((__packed__));
 
-static_assert(sizeof(SetControllerGain) == sizeof(CommandSubPayloadHeader) + 13,
-              "Unexpected size");
+static_assert(sizeof(SetControllerGain) == sizeof(CommandSubPayloadHeader) + 13, "Unexpected size");
 
 struct GetControllerGain : CommandSubPayloadHeader
 {
     char unused;
 } __attribute__((__packed__));
 
-static_assert(sizeof(GetControllerGain) == sizeof(CommandSubPayloadHeader) + 1,
-              "Unexpected size");
+static_assert(sizeof(GetControllerGain) == sizeof(CommandSubPayloadHeader) + 1, "Unexpected size");
 
 enum class Feedback : uint8_t
 {
@@ -222,15 +205,12 @@ enum class Side : uint8_t
 
 inline uint8_t operator&(const Side& lhs, const Side& rhs)
 {
-    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) &
-                                static_cast<uint8_t>(rhs));
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 }
 
-inline uint8_t
-operator|(const Side& lhs, const Side& rhs)
+inline uint8_t operator|(const Side& lhs, const Side& rhs)
 {
-    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) |
-                                static_cast<uint8_t>(rhs));
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }
 
 enum class Wheel : uint8_t
@@ -241,15 +221,12 @@ enum class Wheel : uint8_t
 
 inline uint8_t operator&(const Wheel& lhs, const Wheel& rhs)
 {
-    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) &
-                                static_cast<uint8_t>(rhs));
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 }
 
-inline uint8_t
-operator|(const Wheel& lhs, const Wheel& rhs)
+inline uint8_t operator|(const Wheel& lhs, const Wheel& rhs)
 {
-    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) |
-                                static_cast<uint8_t>(rhs));
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }
 
 enum class Button : uint8_t
@@ -261,15 +238,12 @@ enum class Button : uint8_t
 
 inline uint8_t operator&(const Button& lhs, const Button& rhs)
 {
-    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) &
-                                static_cast<uint8_t>(rhs));
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 }
 
-inline uint8_t
-operator|(const Button& lhs, const Button& rhs)
+inline uint8_t operator|(const Button& lhs, const Button& rhs)
 {
-    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) |
-                                static_cast<uint8_t>(rhs));
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }
 
 enum class Charger : uint8_t
@@ -283,15 +257,12 @@ enum class Charger : uint8_t
 
 inline uint8_t operator&(const Charger& lhs, const Charger& rhs)
 {
-    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) &
-                                static_cast<uint8_t>(rhs));
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 }
 
-inline uint8_t
-operator|(const Charger& lhs, const Charger& rhs)
+inline uint8_t operator|(const Charger& lhs, const Charger& rhs)
 {
-    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) |
-                                static_cast<uint8_t>(rhs));
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }
 
 constexpr double BATTERY_VOLTAGE_RES = 0.1;
@@ -312,8 +283,7 @@ struct BasicSensorData : FeedbackSubPayloadHeader
     Wheel overcurrent;
 } __attribute__((__packed__));
 
-static_assert(sizeof(BasicSensorData) == sizeof(FeedbackSubPayloadHeader) + 15,
-              "Unexpected size");
+static_assert(sizeof(BasicSensorData) == sizeof(FeedbackSubPayloadHeader) + 15, "Unexpected size");
 
 enum class Signal : uint8_t
 {
@@ -327,15 +297,12 @@ enum class Signal : uint8_t
 
 inline uint8_t operator&(const Signal& lhs, const Signal& rhs)
 {
-    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) &
-                                static_cast<uint8_t>(rhs));
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 }
 
-inline uint8_t
-operator|(const Signal& lhs, const Signal& rhs)
+inline uint8_t operator|(const Signal& lhs, const Signal& rhs)
 {
-    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) |
-                                static_cast<uint8_t>(rhs));
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }
 
 struct DockingIR : FeedbackSubPayloadHeader
@@ -345,8 +312,7 @@ struct DockingIR : FeedbackSubPayloadHeader
     Signal left;
 } __attribute__((__packed__));
 
-static_assert(sizeof(DockingIR) == sizeof(FeedbackSubPayloadHeader) + 3,
-              "Unexpected size");
+static_assert(sizeof(DockingIR) == sizeof(FeedbackSubPayloadHeader) + 3, "Unexpected size");
 
 struct InertialSensorData : FeedbackSubPayloadHeader
 {
@@ -355,9 +321,7 @@ struct InertialSensorData : FeedbackSubPayloadHeader
     char unused[3];
 } __attribute__((__packed__));
 
-static_assert(sizeof(InertialSensorData) ==
-                sizeof(FeedbackSubPayloadHeader) + 7,
-              "Unexpected size");
+static_assert(sizeof(InertialSensorData) == sizeof(FeedbackSubPayloadHeader) + 7, "Unexpected size");
 
 struct CliffSensorData : FeedbackSubPayloadHeader
 {
@@ -366,8 +330,7 @@ struct CliffSensorData : FeedbackSubPayloadHeader
     uint16_t left_voltage;
 } __attribute__((__packed__));
 
-static_assert(sizeof(CliffSensorData) == sizeof(FeedbackSubPayloadHeader) + 6,
-              "Unexpected size");
+static_assert(sizeof(CliffSensorData) == sizeof(FeedbackSubPayloadHeader) + 6, "Unexpected size");
 
 struct Current : FeedbackSubPayloadHeader
 {
@@ -375,8 +338,7 @@ struct Current : FeedbackSubPayloadHeader
     int16_t right_current;
 } __attribute__((__packed__));
 
-static_assert(sizeof(Current) == sizeof(FeedbackSubPayloadHeader) + 4,
-              "Unexpected size");
+static_assert(sizeof(Current) == sizeof(FeedbackSubPayloadHeader) + 4, "Unexpected size");
 
 struct HardwareVersion : FeedbackSubPayloadHeader
 {
@@ -386,8 +348,7 @@ struct HardwareVersion : FeedbackSubPayloadHeader
     char unused;
 } __attribute__((__packed__));
 
-static_assert(sizeof(HardwareVersion) == sizeof(FeedbackSubPayloadHeader) + 4,
-              "Unexpected size");
+static_assert(sizeof(HardwareVersion) == sizeof(FeedbackSubPayloadHeader) + 4, "Unexpected size");
 
 struct FirmwareVersion : FeedbackSubPayloadHeader
 {
@@ -397,8 +358,7 @@ struct FirmwareVersion : FeedbackSubPayloadHeader
     char unused;
 } __attribute__((__packed__));
 
-static_assert(sizeof(FirmwareVersion) == sizeof(FeedbackSubPayloadHeader) + 4,
-              "Unexpected size");
+static_assert(sizeof(FirmwareVersion) == sizeof(FeedbackSubPayloadHeader) + 4, "Unexpected size");
 
 struct RawData3AxisGyro : FeedbackSubPayloadHeader
 {
@@ -406,8 +366,7 @@ struct RawData3AxisGyro : FeedbackSubPayloadHeader
     uint8_t n;
 } __attribute__((__packed__));
 
-static_assert(sizeof(RawData3AxisGyro) == sizeof(FeedbackSubPayloadHeader) + 2,
-              "Unexpected size");
+static_assert(sizeof(RawData3AxisGyro) == sizeof(FeedbackSubPayloadHeader) + 2, "Unexpected size");
 
 struct RawData3AxisGyroEntry
 {
@@ -428,15 +387,12 @@ enum class DigitalInput : uint16_t
 
 inline uint8_t operator&(const DigitalInput& lhs, const DigitalInput& rhs)
 {
-    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) &
-                                static_cast<uint8_t>(rhs));
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
 }
 
-inline uint8_t
-operator|(const DigitalInput& lhs, const DigitalInput& rhs)
+inline uint8_t operator|(const DigitalInput& lhs, const DigitalInput& rhs)
 {
-    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) |
-                                static_cast<uint8_t>(rhs));
+    return static_cast<uint8_t>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
 }
 
 struct GeneralPurposeInput : FeedbackSubPayloadHeader
@@ -449,9 +405,7 @@ struct GeneralPurposeInput : FeedbackSubPayloadHeader
     char unused[6];
 } __attribute__((__packed__));
 
-static_assert(sizeof(GeneralPurposeInput) ==
-                sizeof(FeedbackSubPayloadHeader) + 16,
-              "Unexpected size");
+static_assert(sizeof(GeneralPurposeInput) == sizeof(FeedbackSubPayloadHeader) + 16, "Unexpected size");
 
 struct UniqueDeviceIdentifier : FeedbackSubPayloadHeader
 {
@@ -460,9 +414,7 @@ struct UniqueDeviceIdentifier : FeedbackSubPayloadHeader
     uint32_t id_2;
 } __attribute__((__packed__));
 
-static_assert(sizeof(UniqueDeviceIdentifier) ==
-                sizeof(FeedbackSubPayloadHeader) + 12,
-              "Unexpected size");
+static_assert(sizeof(UniqueDeviceIdentifier) == sizeof(FeedbackSubPayloadHeader) + 12, "Unexpected size");
 
 struct ControllerInfo : FeedbackSubPayloadHeader
 {
@@ -472,5 +424,5 @@ struct ControllerInfo : FeedbackSubPayloadHeader
     int32_t derivate;
 } __attribute__((__packed__));
 
-} // protocol
-} // namespace kobuki
+}  // namespace protocol
+}  // namespace kobuki
