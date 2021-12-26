@@ -15,3 +15,10 @@ add_executable(teleop
     ${PROJECT_SOURCES}
 )
 target_link_libraries(teleop -pthread -lncurses)
+
+add_executable(jingle
+    "${PROJECT_SOURCE_DIR}/apps/jingle.cpp"
+    ${PROJECT_SOURCES}
+)
+set_target_properties(jingle PROPERTIES CXX_STANDARD 17)
+target_link_libraries(jingle -pthread)

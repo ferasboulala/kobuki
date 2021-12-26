@@ -1,21 +1,20 @@
 #pragma once
 
 #include <array>
+#include <cmath>
 #include <mutex>
 #include <string>
 #include <thread>
-#include <cmath>
 
 #include "messages.h"
 #include "protocol.h"
 
-inline constexpr double DEG2RAD(double d) {
-  return d / 180.0 * M_PI;
-}
+inline constexpr double DEG2RAD(double d) { return d / 180.0 * M_PI; }
 
 template <typename T>
-inline int SIGNOF(T x) {
-  return (x * x) / x > 0 ? 1 : -1;
+inline int SIGNOF(T x)
+{
+    return (x * x) / x > 0 ? 1 : -1;
 }
 
 namespace kobuki
@@ -60,7 +59,10 @@ public:
 
     void set_motion(double velocity, double radius);
     void pure_translation(double velocity) { set_motion(velocity, 0); }
-    void pure_rotation(double angular_velocity) { set_motion(std::fabs(angular_velocity) * WHEEL_BASE / 2.0, SIGNOF(angular_velocity) * 0.001); };
+    void pure_rotation(double angular_velocity)
+    {
+        set_motion(std::fabs(angular_velocity) * WHEEL_BASE / 2.0, SIGNOF(angular_velocity) * 0.001);
+    };
     void set_sound(double frequency, double duration);
     void set_sound_sequence(SoundSequence sequence);
     // TODO

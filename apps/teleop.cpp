@@ -1,12 +1,21 @@
+#include <ncurses.h>
+
 #include <chrono>
 #include <memory>
 #include <string>
 #include <thread>
 
-#include <ncurses.h>
-
 #include "kobuki.h"
 #include "log.h"
+
+double accelerate(double vel, double acc, double target)
+{
+    if (acc > 0)
+    {
+        return std::min(vel + acc, target);
+    }
+    return std::max(vel + acc, target);
+}
 
 const char* strbool(bool val) { return val ? "x" : " "; }
 
@@ -48,8 +57,8 @@ int main()
         log_fatal("Could not create kobuki instance");
     }
 
-    std::string firmware_version = robot->get_firmware_version();
-    std::string hardware_version = robot->get_hardware_version();
+    std::string firmware_version;
+    std::string hardware_version;
     while (firmware_version.empty() || hardware_version.empty())
     {
         firmware_version = robot->get_firmware_version();
@@ -58,40 +67,55 @@ int main()
     printf("firmware : %s\n", firmware_version.c_str());
     printf("hardware : %s\n", hardware_version.c_str());
 
-    // std::this_thread::sleep_for(std::chrono::seconds(1));
+    double vel = 0;
+    constexpr double dt = 0.05;
+    constexpr double ACC = MAX_TRANS_VELOCITY * dt;
+
     initscr();
-    timeout(-1);
+    timeout(0);
     bool quit = false;
     while (!quit)
     {
-        refresh();
-        BasicData basic_data;
-        if (robot->get_basic_data(basic_data, false))
-        {
-            //print_basic_data(basic_data);
-        }
-        const int key = getch();
-        log_info("%d", key);
+        int key = getch();
         switch (key)
         {
-            case 65: // up
-                robot->pure_translation(MAX_TRANS_VELOCITY / 3);
+            case 119:  // W
+                vel = accelerate(vel, ACC, MAX_TRANS_VELOCITY);
+                robot->pure_translation(vel);
                 break;
-            case 68: // left
-                robot->pure_rotation(MAX_ROT_VELOCITY_SMOOTH);
+            case 115:  // S
+                vel = accelerate(vel, -ACC, -MAX_TRANS_VELOCITY);
+                robot->pure_translation(vel);
                 break;
-            case 67: // right:
-                robot->pure_rotation(-MAX_ROT_VELOCITY_SMOOTH);
+            case 97:  // A
+                if (vel)
+                {
+                    vel = accelerate(vel, vel > 0 ? -ACC : ACC, 0);
+                    robot->pure_translation(vel);
+                }
+                else
+                    robot->pure_rotation(MAX_ROT_VELOCITY_SMOOTH / 2);
                 break;
-            case 113: // q
+            case 100:  // D
+                if (vel)
+                {
+                    vel = accelerate(vel, vel > 0 ? -ACC : ACC, 0);
+                    robot->pure_translation(vel);
+                }
+                else
+                    robot->pure_rotation(-MAX_ROT_VELOCITY_SMOOTH / 2);
+                break;
+            case 113:  // Q
+                robot->set_motion(0, 0);
                 quit = true;
                 break;
             default:
-                log_info("shhh");
-                robot->set_motion(0, 0);
+                vel = accelerate(vel, vel > 0 ? -ACC : ACC, 0);
+                robot->pure_translation(vel);
                 break;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        flushinp();
+        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(dt * 1000)));
     }
     endwin();
 

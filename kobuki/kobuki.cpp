@@ -102,11 +102,12 @@ Kobuki* Kobuki::create(const char* device)
     }
 
     struct termios tty;
-    if (tcgetattr(fileno(file), &tty))
-    {
-        log_error("Could not retrive teletype attributes");
-        return nullptr;
-    }
+    memset(&tty, 0, sizeof(tty));
+    // if (tcgetattr(fileno(file), &tty))
+    //{
+    //    log_error("Could not retrive teletype attributes");
+    //    return nullptr;
+    //}
 
     cfsetospeed(&tty, B115200);
     cfsetispeed(&tty, B115200);
