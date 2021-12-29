@@ -462,14 +462,14 @@ void Kobuki::set_power_output(bool power_3_3, bool power_5, bool power_12_5, boo
     send_msg(msg);
 }
 
-MUTEX_ASSIGN_IMPL(BasicData, basic_data);
-MUTEX_ASSIGN_IMPL(DockingIR, docking_ir);
-MUTEX_ASSIGN_IMPL(InertialData, inertial_data);
-MUTEX_ASSIGN_IMPL(CliffData, cliff_data);
-MUTEX_ASSIGN_IMPL(Current, current);
-MUTEX_ASSIGN_IMPL(GyroData, gyro_data);
-MUTEX_ASSIGN_IMPL(GeneralPurposeInput, gpi);
-MUTEX_ASSIGN_IMPL(PID, pid);
+MUTEX_ASSIGN_IMPL(BasicData, basic_data)
+MUTEX_ASSIGN_IMPL(DockingIR, docking_ir)
+MUTEX_ASSIGN_IMPL(InertialData, inertial_data)
+MUTEX_ASSIGN_IMPL(CliffData, cliff_data)
+MUTEX_ASSIGN_IMPL(Current, current)
+MUTEX_ASSIGN_IMPL(GyroData, gyro_data)
+MUTEX_ASSIGN_IMPL(GeneralPurposeInput, gpi)
+MUTEX_ASSIGN_IMPL(PID, pid)
 
 bool Kobuki::on_msg(const protocol::BasicSensorData& basic_sensor_data)
 {
