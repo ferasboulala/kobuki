@@ -360,14 +360,14 @@ void Kobuki::spin()
     }
 }
 
-MUTEX_ACCESSOR_IMPL(BasicData, basic_data);
-MUTEX_ACCESSOR_IMPL(DockingIR, docking_ir);
-MUTEX_ACCESSOR_IMPL(InertialData, inertial_data);
-MUTEX_ACCESSOR_IMPL(CliffData, cliff_data);
-MUTEX_ACCESSOR_IMPL(Current, current);
-MUTEX_ACCESSOR_IMPL(GyroData, gyro_data);
-MUTEX_ACCESSOR_IMPL(GeneralPurposeInput, gpi);
-MUTEX_ACCESSOR_IMPL(PID, pid);
+MUTEX_ACCESSOR_IMPL(BasicData, basic_data)
+MUTEX_ACCESSOR_IMPL(DockingIR, docking_ir)
+MUTEX_ACCESSOR_IMPL(InertialData, inertial_data)
+MUTEX_ACCESSOR_IMPL(CliffData, cliff_data)
+MUTEX_ACCESSOR_IMPL(Current, current)
+MUTEX_ACCESSOR_IMPL(GyroData, gyro_data)
+MUTEX_ACCESSOR_IMPL(GeneralPurposeInput, gpi)
+MUTEX_ACCESSOR_IMPL(PID, pid)
 
 std::string Kobuki::get_hardware_version() const { return m_hardware_version; }
 
