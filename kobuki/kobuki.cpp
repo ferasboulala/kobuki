@@ -446,6 +446,22 @@ void Kobuki::set_leds(bool led_1_green, bool led_1_red, bool led_2_green, bool l
     send_msg(msg);
 }
 
+void Kobuki::set_power_output(bool power_3_3, bool power_5, bool power_12_5, bool power_12_1_5)
+{
+    auto msg = prepare_message<protocol::GeneralPurposeOutput>(protocol::Command::GeneralPurposeOutput);
+    msg.digital_output = m_cached_output;
+    m_cached_output &= ~(protocol::DigitalOutput::Power_3_3 | protocol::DigitalOutput::Power_5 |
+                         protocol::DigitalOutput::Power_12_5 | protocol::DigitalOutput::Power_12_1_5);
+    if (power_3_3) m_cached_output |= protocol::DigitalOutput::Power_3_3;
+    if (power_5) m_cached_output |= protocol::DigitalOutput::Power_5;
+    if (power_12_5) m_cached_output |= protocol::DigitalOutput::Power_12_5;
+    if (power_12_1_5) m_cached_output |= protocol::DigitalOutput::Power_12_1_5;
+
+    msg.digital_output = m_cached_output;
+
+    send_msg(msg);
+}
+
 MUTEX_ASSIGN_IMPL(BasicData, basic_data);
 MUTEX_ASSIGN_IMPL(DockingIR, docking_ir);
 MUTEX_ASSIGN_IMPL(InertialData, inertial_data);

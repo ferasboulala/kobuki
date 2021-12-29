@@ -69,23 +69,25 @@ int main()
 
     double vel = 0;
     constexpr double dt = 0.05;
-    constexpr double ACC = MAX_TRANS_VELOCITY * dt;
+    constexpr double MAX_VEL = MAX_TRANS_VELOCITY / 2;
+    constexpr double ACC = MAX_VEL * dt;
 
     initscr();
     timeout(0);
     bool quit = false;
+    robot->set_power_output(false, false, true, true);
     while (!quit)
     {
         int key = getch();
         switch (key)
         {
             case 119:  // W
-                vel = accelerate(vel, ACC, MAX_TRANS_VELOCITY);
+                vel = accelerate(vel, ACC, MAX_VEL);
                 robot->pure_translation(vel);
                 robot->set_leds(true, false, false, false);
                 break;
             case 115:  // S
-                vel = accelerate(vel, -ACC, -MAX_TRANS_VELOCITY);
+                vel = accelerate(vel, -ACC, -MAX_VEL);
                 robot->pure_translation(vel);
                 robot->set_leds(false, true, false, false);
                 break;
