@@ -73,7 +73,7 @@ public:
     void set_pid(double p, double i, double d);
 
     // TODO : Move to another file
-    static double ticks_to_meters(uint16_t ticks);
+    static double ticks_to_radians(uint16_t ticks);
 
 private:
     static constexpr size_t N_EFD = 8;

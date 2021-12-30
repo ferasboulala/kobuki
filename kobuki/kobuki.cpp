@@ -683,13 +683,12 @@ void Kobuki::request_identifiers()
 }
 
 // TODO : Move to another file
-double Kobuki::ticks_to_meters(uint16_t ticks)
+double Kobuki::ticks_to_radians(uint16_t ticks)
 {
     constexpr int ticks_per_revolution = 52;
     constexpr double gear_ratio = 6545.0 / 132;
-    constexpr double wheel_radius_m = 0.034;
 
-    return ticks * wheel_radius_m * 2 * M_PI / ticks_per_revolution / gear_ratio;
+    return ticks * 2 * M_PI / ticks_per_revolution / gear_ratio;
 }
 
 }  // namespace kobuki
