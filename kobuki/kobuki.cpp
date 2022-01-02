@@ -347,7 +347,7 @@ void Kobuki::spin()
 
         if (!validate_checksum(packet_length, buffer))
         {
-            log_error("Failed checksum. Skipping packet");
+            //log_error("Failed checksum. Skipping packet");
             continue;
         }
 
