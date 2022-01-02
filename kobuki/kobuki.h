@@ -27,6 +27,9 @@ static constexpr double MAX_TRANS_VELOCITY = 0.7;
 static constexpr double MAX_ROT_VELOCITY = DEG2RAD(180);
 static constexpr double MAX_ROT_VELOCITY_SMOOTH = DEG2RAD(110);
 static constexpr double MAX_PAYLOAD = 5;
+static constexpr double BATTERY_CAPACITY = 16.5;
+static constexpr double BATTERY_LOW_VOLTAGE = 14.0;
+static constexpr double BATTERY_DANGEROUS_VOLTAGE = 13.2;
 
 template <typename T>
 struct EventField
@@ -75,6 +78,12 @@ public:
 
     // TODO : Move to another file
     static double ticks_to_radians(uint16_t ticks);
+    static inline double battery_percentage(double voltage)
+    {
+        const double percent = (((95 * (voltage - BATTERY_DANGEROUS_VOLTAGE)) / (BATTERY_CAPACITY - BATTERY_DANGEROUS_VOLTAGE)) + 5) / 100;
+
+        return std::max(std::min(percent, 100.0), 0.0);
+    }
 
 private:
     static constexpr size_t N_EFD = 8;
