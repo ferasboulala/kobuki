@@ -700,13 +700,13 @@ void Kobuki::set_motion_twist(double translational_velocity, double angular_velo
         return;
     }
     const double radius = translational_velocity / angular_velocity;
-    if (std::abs(translational_velocity) < EPSILON || std::abs(radius) <= 1.0)
+    if (std::abs(translational_velocity) < EPSILON || std::abs(radius) <= EPSILON)
     {
-        pure_rotation(WHEEL_BASE * angular_velocity / 2.0);
+        pure_rotation(angular_velocity);
         return;
     }
 
-    pure_translation(radius + signof(radius) * WHEEL_BASE / 2 * angular_velocity);
+    set_motion(radius + signof(radius) * WHEEL_BASE / 2 * angular_velocity, radius);
 }
 
 }  // namespace kobuki
