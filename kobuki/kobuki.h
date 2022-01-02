@@ -12,7 +12,7 @@
 inline constexpr double DEG2RAD(double d) { return d / 180.0 * M_PI; }
 
 template <typename T>
-inline int SIGNOF(T x)
+inline int signof(const T& x)
 {
     return (x * x) / x > 0 ? 1 : -1;
 }
@@ -58,10 +58,11 @@ public:
     UDID get_udid() const;
 
     void set_motion(double velocity, double radius);
+    void set_motion_twist(double translational_velocity, double angular_velocity);
     void pure_translation(double velocity) { set_motion(velocity, 0); }
     void pure_rotation(double angular_velocity)
     {
-        set_motion(std::fabs(angular_velocity) * WHEEL_BASE / 2.0, SIGNOF(angular_velocity) * 0.001);
+        set_motion(std::fabs(angular_velocity) * WHEEL_BASE / 2.0, signof(angular_velocity) * 0.001);
     };
     void set_sound(double frequency, double duration);
     void set_sound_sequence(SoundSequence sequence);

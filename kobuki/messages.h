@@ -61,6 +61,8 @@ struct InertialData
     uint16_t angle_rate;
 };
 
+// see : https://global.sharp/products/device/lineup/data/pdf/datasheet/gp2y0a51sk_e.pdf
+// Probably a scaled Rayleigh PDF
 struct CliffData
 {
     double voltage_left;

@@ -691,4 +691,22 @@ double Kobuki::ticks_to_radians(uint16_t ticks)
     return ticks * 2 * M_PI / ticks_per_revolution / gear_ratio;
 }
 
+void Kobuki::set_motion_twist(double translational_velocity, double angular_velocity)
+{
+    constexpr double EPSILON = 1e-3;
+    if (std::abs(angular_velocity) < EPSILON)
+    {
+        pure_translation(translational_velocity);
+        return;
+    }
+    const double radius = translational_velocity / angular_velocity;
+    if (std::abs(translational_velocity) < EPSILON || std::abs(radius) <= 1.0)
+    {
+        pure_rotation(WHEEL_BASE * angular_velocity / 2.0);
+        return;
+    }
+
+    pure_translation(radius + signof(radius) * WHEEL_BASE / 2 * angular_velocity);
+}
+
 }  // namespace kobuki
