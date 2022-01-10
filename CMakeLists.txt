@@ -1,24 +1,35 @@
 cmake_minimum_required(VERSION 2.8.17)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Wformat=0 -DNDEBUG -O2 -finline-functions")
+
+project(kobuki)
+
+
+add_compile_options(-Ofast -fno-math-errno -finline-functions -Wall -Wextra -Wpedantic -std=c++17 -std=gnu++17) #-Werror)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(ALL_LIBRARIES)
 
-project(kobuki)
-include_directories("${PROJECT_SOURCE_DIR}/kobuki")
-file(GLOB PROJECT_SOURCES "${PROJECT_SOURCE_DIR}/kobuki/*.cpp")
+
 find_package(Threads REQUIRED)
 
-add_executable(teleop
-    "${PROJECT_SOURCE_DIR}/apps/teleop.cpp"
-    ${PROJECT_SOURCES}
-)
-target_link_libraries(teleop -pthread -lncurses)
 
-add_executable(jingle
-    "${PROJECT_SOURCE_DIR}/apps/jingle.cpp"
-    ${PROJECT_SOURCES}
+add_library(kobuki STATIC
+    kobuki/kobuki.cpp
+    kobuki/kobuki.h
+    kobuki/log.cpp
+    kobuki/log.h
+    kobuki/messages.h
+    kobuki/protocol.h
 )
-set_target_properties(jingle PROPERTIES CXX_STANDARD 17)
-target_link_libraries(jingle -pthread)
+target_include_directories(kobuki PRIVATE kobuki)
+target_link_libraries(kobuki -pthread)
+
+
+macro(app progname source)
+    add_executable(${progname} ${source})
+    target_include_directories(${progname} PRIVATE kobuki)
+    target_link_libraries(${progname} -pthread -lncurses kobuki)
+endmacro()
+
+app(teleop apps/teleop.cpp)
+app(jingle apps/jingle.cpp)
